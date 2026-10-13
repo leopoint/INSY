@@ -38,21 +38,24 @@ NN_from_scratch/
 ├── LERNPROTOKOLL.md  (privat, nur lokal)
 ├── FORTSCHRITT.md    (für den Lehrer, auf GitHub)
 ├── CLAUDE.md         (diese Regeln, auf GitHub)
-├── part1_2_python/   nn.py, train_xor.py, train_7seg.py, plot_7seg.py
-├── models/           xor.json, 7seg.json, 7seg.txt, 7seg_net.h, 7seg_grafik.png
+├── ARBEITSBERICHT.md (öffentliche Fassung des Lernprotokolls, auf GitHub)
+├── part1_2_python/   nn.py, train_xor.py, train_7seg.py
+├── models/           xor.json, 7seg.json, 7seg.txt, 7seg_net.h
 ├── part3_tensorflow/ tf_xor.py, tf_7seg.py, vergleich.md
-├── part4_c_txt/      nn.c, main.c
-├── part5_c_header/   nn.c, main.c (nutzt 7seg_net.h)
-└── part6_esp32/      PlatformIO-Projekt
+├── part4_c_txt/      nn.h, nn.c, main.c
+├── part5_c_header/   nn.h, nn.c, main.c (nutzt 7seg_net.h)
+├── part6_esp32/      PlatformIO-Projekt
+└── gui/              server.py, index.html, start_gui.bat (Weboberfläche, Zusatz)
 ```
 Das Laden und Testen der gespeicherten Modelle passiert direkt in `train_xor.py` und `train_7seg.py`. Eine eigene `test_load.py` gibt es deshalb nicht.
 
 ## GitHub und Fortschrittsdatei
 - Das Git-Repo liegt im **übergeordneten** Ordner `C:\Schule\5.Klasse\INSY` (nicht in `NN_from_scratch`) und ist mit https://github.com/leopoint/INSY verbunden (Branch `main`).
-- Auf GitHub kommen **nur** `NN_from_scratch/FORTSCHRITT.md` und `NN_from_scratch/CLAUDE.md`. Die `.gitignore` in `INSY` schließt alles andere aus. Niemals Code, Modelle, PDFs oder das Lernprotokoll hochladen, die `.gitignore` nicht aufweichen und kein `git add -f` verwenden.
+- Auf GitHub kommen **nur** `NN_from_scratch/FORTSCHRITT.md`, `NN_from_scratch/CLAUDE.md` und `NN_from_scratch/ARBEITSBERICHT.md`. Die `.gitignore` in `INSY` schließt alles andere aus. Niemals Code, Modelle, PDFs oder das `LERNPROTOKOLL.md` selbst hochladen, die `.gitignore` nicht weiter aufweichen und kein `git add -f` verwenden.
 - Etwa **jede Stunde** fragst du mich, ob ich ein Fortschritts-Update hochladen will (in jeder neuen Sitzung wieder einrichten, z. B. als stündliche Erinnerung). Ohne mein „ja“ wird nichts gepusht.
-- Bei „ja“: `FORTSCHRITT.md` anhand des Lernprotokolls aktualisieren (Status-Tabelle der Parts, neuer Verlaufseintrag mit Datum, nächster Schritt), in `INSY` committen (inklusive geänderter `CLAUDE.md`) und `git push` ausführen.
+- Bei „ja“: `FORTSCHRITT.md` und `ARBEITSBERICHT.md` anhand des Lernprotokolls aktualisieren (Status-Tabelle der Parts, neuer Verlaufseintrag mit Datum, nächster Schritt bzw. neue Arbeit im passenden Part-Abschnitt), in `INSY` committen (inklusive geänderter `CLAUDE.md`) und `git push` ausführen.
 - `FORTSCHRITT.md` ist **für den Lehrer** geschrieben: sachlich, kurz, in ganzen Sätzen, ohne Tutor-Erklärungen, Kontrollfragen oder Code.
+- `ARBEITSBERICHT.md` ist die öffentliche Fassung des Lernprotokolls im Stil eines Arbeitsberichts: erklärt Projekt, Ablauf und Ergebnisse verständlich, aber ohne Kontrollfragen, ohne Tutor-Ton und ohne private Pfade (z. B. `C:\Users\...`). Das `LERNPROTOKOLL.md` bleibt privat und wird weiter nur angehängt.
 
 ## Die Aufgaben laut PDF
 

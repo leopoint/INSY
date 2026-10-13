@@ -22,6 +22,8 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **13.10.2026** – XOR und 7-Segment-Decoder mit TensorFlow/Keras trainiert (gleiche Netzgröße 4-16-7 für einen fairen Vergleich). Beide Umsetzungen erreichen 100 % Genauigkeit. Der Vergleich von Endfehler und Trainingszeit ist dokumentiert.
 - **13.10.2026** – Vorwärtsrechnung des 7-Segment-Netzes in C umgesetzt. Die Gewichte werden aus `7seg.txt` gelesen, und das Programm erkennt alle 10 Ziffern mit denselben Ausgabewerten wie Python.
 - **13.10.2026** – C-Variante ohne Datei und ohne dynamischen Speicher erstellt. Die Gewichte stammen aus dem automatisch erzeugten Header `7seg_net.h`, der jetzt auch eine Init-Funktion enthält. Alle 10 Ziffern werden korrekt erkannt.
+- **13.10.2026** – Code durchgehend kommentiert. Lokale Weboberfläche erstellt, mit der sich alle Programme starten lassen und die Lernkurve sowie den Weg einer Eingabe durch das Netz live anzeigt. Ungenutzte Dateien entfernt, darunter die grafische Ausgabe vom 29.09.
+- **13.10.2026** – Ausführlicher [Arbeitsbericht](ARBEITSBERICHT.md) mit Erklärung aller Parts, Ergebnissen und Problemen angelegt.
 
 ## Nächster Schritt
 
