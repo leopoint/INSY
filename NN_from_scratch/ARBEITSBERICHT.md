@@ -1,23 +1,24 @@
 # Arbeitsbericht – Neural Network from Scratch
 
-**Fach:** INSY, 4AHITS · **Zeitraum:** ab 29.09.2026 · **Stand:** 13.10.2026
+**Fach:** INSY, 4AHITS · **Zeitraum:** 29.09.2026 – 19.10.2026 · **Stand:** 19.10.2026 (abgeschlossen)
 
-Dieser Bericht beschreibt, was im Projekt umgesetzt wurde, wie die einzelnen Teile funktionieren und welche Ergebnisse erzielt wurden. Den kurzen Status aller Parts zeigt die Datei [`FORTSCHRITT.md`](FORTSCHRITT.md).
+Dieser Bericht beschreibt, was im Projekt umgesetzt wurde, wie die einzelnen Teile funktionieren und welche Ergebnisse erzielt wurden. Den kurzen Status aller Parts zeigt die Datei [`FORTSCHRITT.md`](FORTSCHRITT.md). Die Visualisierung ist online unter https://leopoint.github.io/INSY/NN_from_scratch/gui/ erreichbar.
 
 ---
 
 ## 1. Ziel und Gesamtablauf
 
-Ziel der Übung ist ein neuronales Netz, das ohne fertige KI-Bibliothek selbst programmiert wird und am Ende auf einem ESP32-Mikrocontroller eine 7-Segment-Anzeige steuert. Das Netz lernt, eine Ziffer von 0 bis 9 (als 4 Bit) in die sieben Segmente a–g der Anzeige zu übersetzen.
+Ziel der Übung ist ein neuronales Netz, das ohne fertige KI-Bibliothek selbst programmiert und anschließend in C nachgebaut wird. Das Netz lernt, eine Ziffer von 0 bis 9 (als 4 Bit) in die sieben Segmente a–g einer 7-Segment-Anzeige zu übersetzen. Die Angabe sieht als letzten Teil die Ansteuerung einer echten Anzeige mit einem ESP32-Mikrocontroller vor; dieser Teil (Part 6) wurde nicht umgesetzt. Das Projekt endet mit der C-Variante aus Part 5.
 
 Das Projekt ist in zwei Phasen geteilt:
 
 - **Training am PC (Python).** Das Lernen braucht viele tausend Wiederholungen und ist rechenintensiv. Es läuft deshalb am PC.
-- **Vorhersage überall (C, ESP32).** Das fertige Netz muss nur noch rechnen: multiplizieren, addieren und die Sigmoid-Funktion anwenden. Dafür reicht auch ein kleiner Mikrocontroller.
+- **Vorhersage in C.** Das fertige Netz muss nur noch rechnen: multiplizieren, addieren und die Sigmoid-Funktion anwenden. Dafür reicht ein einfaches C-Programm, grundsätzlich sogar ein kleiner Mikrocontroller.
 
 ```
 Training (Python, PC) → Gewichte speichern (7seg.json / 7seg.txt / 7seg_net.h)
-                      → Vorhersage in C (PC) → Vorhersage am ESP32 → 7-Segment-Anzeige
+                      → Vorhersage in C mit 7seg.txt (Part 4)
+                      → Vorhersage in C mit 7seg_net.h (Part 5)
 ```
 
 ## 2. Grundlagen des Netzes
@@ -118,12 +119,7 @@ Die Structs und Funktionen sind dieselben wie in Part 4. Das Netz wird aber übe
 
 ### Part 6 – ESP32 mit 7-Segment-Anzeige
 
-Noch offen. Geplant ist folgender Ablauf:
-1. Eine Ziffer wird über den Serial Monitor empfangen und in 4 Bit umgewandelt.
-2. Das Netz rechnet die 4 Bit durch.
-3. Die 7 Ausgänge werden mit der Schwelle 0,5 an die Segment-Pins weitergegeben.
-
-Dafür werden `nn.c` und `7seg_net.h` aus Part 5 übernommen.
+Dieser Teil wurde nicht umgesetzt. Laut Angabe wäre eine Ziffer über den Serial Monitor empfangen, in 4 Bit umgewandelt, durch das Netz gerechnet und mit der Schwelle 0,5 an die sieben Segment-Pins ausgegeben worden. Die nötige Grundlage ist mit Part 5 vorhanden: `nn.c` und `7seg_net.h` brauchen weder ein Dateisystem noch dynamischen Speicher und könnten in ein ESP32-Projekt übernommen werden.
 
 ## 4. Zusatz: Weboberfläche (`gui/`)
 
@@ -134,6 +130,10 @@ Als Ergänzung zur Angabe gibt es eine lokale Weboberfläche (`http://localhost:
 - **Reiter „Netz ansehen“:** Hier sieht man, wie eine gewählte Ziffer Schicht für Schicht durch das gespeicherte Netz läuft und welche Segmente aufleuchten.
 
 Der Server verwendet nur die Python-Standardbibliothek und NumPy. Er ist ausschließlich vom eigenen PC aus erreichbar und kann nur die fest eingetragenen Programme starten.
+
+**Online-Version (GitHub Pages).** Dieselbe Seite liegt unter https://leopoint.github.io/INSY/NN_from_scratch/gui/. Dort gibt es keinen Server, der Python oder gcc ausführen könnte. Die Seite erkennt das und schaltet um:
+- **Netz ansehen:** Die gespeicherten Gewichte (`models/*.json`) werden direkt geladen, und die Vorwärtsrechnung läuft in JavaScript im Browser. Die Formel ist dieselbe wie in `nn.py`.
+- **Programme:** Die Buttons spielen eine Aufzeichnung (`gui/aufzeichnung.json`) eines echten Laufs aller sechs Programme vom 19.10.2026 ab, mit Ausgabe, Lernkurve und gemessener Laufzeit.
 
 ## 5. Probleme und Lösungen
 
@@ -147,9 +147,9 @@ Der Server verwendet nur die Python-Standardbibliothek und NumPy. Er ist ausschl
 
 ## 6. Werkzeuge
 
-- **Programmierung:** Python 3.12 mit NumPy (eigenes Netz) und TensorFlow/Keras (nur Part 3), C mit gcc, später PlatformIO für den ESP32.
+- **Programmierung:** Python 3.12 mit NumPy (eigenes Netz) und TensorFlow/Keras (nur Part 3), C mit gcc.
 - **Umgebung:** Windows und VS Code.
-- **KI-Unterstützung:** Die Umsetzung erfolgte mit Claude als Tutor und Programmierpartner. Die Arbeitsregeln dafür stehen in [`CLAUDE.md`](CLAUDE.md).
+- **KI-Unterstützung:** Die Umsetzung erfolgte mit Claude als Tutor und Programmierpartner. Die Arbeitsregeln dafür stehen in [`CLAUDE.md`](CLAUDE.md). Token-Verbrauch und Kosten der KI-Nutzung werden mit `token_verbrauch.py` aus den Sitzungsprotokollen ermittelt und in [`FORTSCHRITT.md`](FORTSCHRITT.md) laufend aktualisiert.
 
 ## 7. Projektstruktur
 
@@ -160,11 +160,10 @@ NN_from_scratch/
 ├── part3_tensorflow/  tf_xor.py, tf_7seg.py, vergleich.md
 ├── part4_c_txt/       nn.h, nn.c, main.c
 ├── part5_c_header/    nn.h, nn.c, main.c
-├── part6_esp32/       (folgt)
-└── gui/               server.py, index.html, start_gui.bat
+└── gui/               server.py, index.html, start_gui.bat, aufzeichnung.json
 ```
 
-Auf GitHub liegen nur dieser Bericht, `FORTSCHRITT.md` und `CLAUDE.md`. Code und Modelle bleiben lokal.
+Der gesamte Ordner liegt auf GitHub (https://github.com/leopoint/INSY/tree/main/NN_from_scratch). Nur das private Lernprotokoll und lokale Editor-Einstellungen bleiben auf dem eigenen PC.
 
 ## 8. Verlauf
 
@@ -175,3 +174,15 @@ Auf GitHub liegen nur dieser Bericht, `FORTSCHRITT.md` und `CLAUDE.md`. Code und
 | 30.09.2026 | GitHub-Repository mit Fortschrittsdatei eingerichtet |
 | 13.10.2026 | TensorFlow-Vergleich (Part 3), C-Programme mit TXT- und Header-Gewichten (Part 4 und 5) |
 | 13.10.2026 | Code kommentiert, Weboberfläche erstellt, ungenutzte Dateien entfernt, Arbeitsbericht angelegt |
+| 19.10.2026 | Entscheidung gegen Part 6 (ESP32), Schlussprüfung aller Programme, Projekt abgeschlossen |
+| 19.10.2026 | Gesamtes Projekt auf GitHub hochgeladen, Weboberfläche als Online-Version über GitHub Pages |
+
+## 9. Zusammenfassung
+
+Am PC wurde in Python ein neuronales Netz aus den Klassen `Neuron`, `Layer` und `NeuralNetwork` selbst programmiert. Es lernt mit Backpropagation und Stochastic Gradient Descent: Nach jedem Beispiel wird der Fehler rückwärts durch das Netz gereicht, und jedes Gewicht wird ein kleines Stück verbessert. Als erster Test lernte ein 2-2-1-Netz die XOR-Funktion. Danach lernte ein 4-16-7-Netz, eine Ziffer als 4 Bit in die sieben Segmente einer Anzeige zu übersetzen, und erkennt alle 10 Ziffern richtig. Das trainierte Netz wurde in drei Formaten gespeichert: JSON zum Wiederladen in Python, TXT zum Einlesen in C und ein C-Header mit den Gewichten als Konstanten. Ein Vergleich mit TensorFlow/Keras bei gleicher Netzgröße und gleichen Einstellungen ergab dieselbe Genauigkeit und bestätigt so die eigene Umsetzung. In C wurde nur die Vorwärtsrechnung nachgebaut, einmal mit Gewichten aus der Textdatei und einmal mit Gewichten aus dem Header. Beide C-Programme liefern dieselben Ausgabewerte wie Python und erkennen alle 10 Ziffern. Die Header-Variante braucht weder Datei noch dynamischen Speicher und wäre damit für einen Mikrocontroller geeignet. Der ESP32-Teil wurde nicht mehr umgesetzt.
+
+```
+Trainingsdaten → Training in Python (nn.py) → 7seg.json / 7seg.txt / 7seg_net.h
+                                                  │           │            │
+                                        Python laden    C (Part 4)   C (Part 5)
+```

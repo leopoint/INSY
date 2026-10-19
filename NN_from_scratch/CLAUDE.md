@@ -26,7 +26,7 @@ Mein Ziel: Ich will nicht jede Codezeile verstehen, sondern das **große Ganze**
 8. **Installationen nur nach Rückfrage:** Bevor du Python-Pakete (z. B. TensorFlow, Matplotlib) oder Programme installierst, frag mich und sag, was installiert wird und warum. Achte auf die passende Version zu meinem Python (3.12).
 
 ## Umgebung
-- Windows, VS Code, Python 3, später C (gcc) und ESP32 mit PlatformIO.
+- Windows, VS Code, Python 3, später C (gcc). ESP32 mit PlatformIO entfällt (siehe Part 6).
 - Part 1 und 2 in Python mit NumPy. TensorFlow erst in Part 3.
 - **Es gibt schon eine eigene Vorarbeit:** `C:\Schule\5.Klasse\INSY\Neuronales Netz.py` (Part 1 Steps 1–3 und Part 2 Step 1/XOR, mit NumPy). Schau sie zuerst an, prüfe, ob sie funktioniert, und bau darauf auf, statt neu anzufangen. Kopier sie dafür nach `NN_from_scratch/part1_2_python/nn.py` – das Original nicht verändern. Erklär mir im ersten Protokolleintrag kurz, was davon schon fertig ist und was noch fehlt.
 - Setze einen festen Zufalls-Seed (`np.random.seed(...)`, in TensorFlow `tf.random.set_seed(...)`), damit die Ergebnisse reproduzierbar sind.
@@ -35,25 +35,28 @@ Mein Ziel: Ich will nicht jede Codezeile verstehen, sondern das **große Ganze**
 Projektordner: `C:\Schule\5.Klasse\INSY\NN_from_scratch` (existiert schon). Alle Dateien kommen dort hinein.
 ```
 NN_from_scratch/
+├── README.md         (Startseite des Ordners auf GitHub, mit beiden Links)
 ├── LERNPROTOKOLL.md  (privat, nur lokal)
 ├── FORTSCHRITT.md    (für den Lehrer, auf GitHub)
 ├── CLAUDE.md         (diese Regeln, auf GitHub)
 ├── ARBEITSBERICHT.md (öffentliche Fassung des Lernprotokolls, auf GitHub)
+├── token_verbrauch.py (wertet Token-Verbrauch und Kosten der Claude-Sitzungen aus)
 ├── part1_2_python/   nn.py, train_xor.py, train_7seg.py
 ├── models/           xor.json, 7seg.json, 7seg.txt, 7seg_net.h
 ├── part3_tensorflow/ tf_xor.py, tf_7seg.py, vergleich.md
 ├── part4_c_txt/      nn.h, nn.c, main.c
 ├── part5_c_header/   nn.h, nn.c, main.c (nutzt 7seg_net.h)
-├── part6_esp32/      PlatformIO-Projekt
-└── gui/              server.py, index.html, start_gui.bat (Weboberfläche, Zusatz)
+└── gui/              server.py, index.html, start_gui.bat, aufzeichnung.json (Weboberfläche, Zusatz; online über GitHub Pages)
 ```
 Das Laden und Testen der gespeicherten Modelle passiert direkt in `train_xor.py` und `train_7seg.py`. Eine eigene `test_load.py` gibt es deshalb nicht.
 
 ## GitHub und Fortschrittsdatei
 - Das Git-Repo liegt im **übergeordneten** Ordner `C:\Schule\5.Klasse\INSY` (nicht in `NN_from_scratch`) und ist mit https://github.com/leopoint/INSY verbunden (Branch `main`).
-- Auf GitHub kommen **nur** `NN_from_scratch/FORTSCHRITT.md`, `NN_from_scratch/CLAUDE.md` und `NN_from_scratch/ARBEITSBERICHT.md`. Die `.gitignore` in `INSY` schließt alles andere aus. Niemals Code, Modelle, PDFs oder das `LERNPROTOKOLL.md` selbst hochladen, die `.gitignore` nicht weiter aufweichen und kein `git add -f` verwenden.
+- Seit 19.10.2026 kommt der **ganze Ordner `NN_from_scratch`** auf GitHub (Code, Modelle, Weboberfläche, Dokumente), damit der Lehrer das Projekt ansehen kann. Die `.gitignore` in `INSY` schließt alles außerhalb davon aus. **Nicht** hochgeladen werden: `LERNPROTOKOLL.md` (privat), `.claude/`, `.vscode/`, erzeugte Dateien (`__pycache__`, `.exe`) und PDFs. Kein `git add -f` verwenden. Vor jedem Commit prüfen, dass keine privaten Pfade (z. B. `C:\Users\...`) in hochgeladenen Dateien stehen.
+- **Zwei Links für den Lehrer:** Repo https://github.com/leopoint/INSY/tree/main/NN_from_scratch und Visualisierung https://leopoint.github.io/INSY/NN_from_scratch/gui/ (GitHub Pages, Branch `main`, Ordner `/`). Die Online-Version spielt `gui/aufzeichnung.json` ab. Wenn sich Ausgaben der Programme ändern, die Aufzeichnung neu erzeugen.
 - Etwa **jede Stunde** fragst du mich, ob ich ein Fortschritts-Update hochladen will (in jeder neuen Sitzung wieder einrichten, z. B. als stündliche Erinnerung). Ohne mein „ja“ wird nichts gepusht.
 - Bei „ja“: `FORTSCHRITT.md` und `ARBEITSBERICHT.md` anhand des Lernprotokolls aktualisieren (Status-Tabelle der Parts, neuer Verlaufseintrag mit Datum, nächster Schritt bzw. neue Arbeit im passenden Part-Abschnitt), in `INSY` committen (inklusive geänderter `CLAUDE.md`) und `git push` ausführen.
+- **Token-Verbrauch immer mitnotieren:** Bei jedem Update `python token_verbrauch.py` ausführen und die ausgegebene Tabelle im Abschnitt „KI-Nutzung: Token-Verbrauch und Kosten“ in `FORTSCHRITT.md` ersetzen (Eingabe, Ausgabe, Cache, Kosten zu API-Preisen, Datum/Uhrzeit des Stands aktualisieren). Zahlen nie schätzen, nur aus dem Skript übernehmen. Falls ein neues Modell verwendet wird, dessen Preis in `PRICES` im Skript fehlt, den Preis vorher aus einer verlässlichen Quelle ergänzen.
 - `FORTSCHRITT.md` ist **für den Lehrer** geschrieben: sachlich, kurz, in ganzen Sätzen, ohne Tutor-Erklärungen, Kontrollfragen oder Code.
 - `ARBEITSBERICHT.md` ist die öffentliche Fassung des Lernprotokolls im Stil eines Arbeitsberichts: erklärt Projekt, Ablauf und Ergebnisse verständlich, aber ohne Kontrollfragen, ohne Tutor-Ton und ohne private Pfade (z. B. `C:\Users\...`). Das `LERNPROTOKOLL.md` bleibt privat und wird weiter nur angehängt.
 
@@ -89,7 +92,8 @@ Das Laden und Testen der gespeicherten Modelle passiert direkt in `train_xor.py`
 **Part 5 – C, Gewichte aus .h**
 - Gleiche Structs/Funktionen, aber Initialisierung über `7seg_net.h` statt Datei. Erklär mir, warum das für einen Mikrocontroller besser ist (kein Dateisystem, Werte stehen direkt im Flash).
 
-**Part 6 – ESP32 mit 7-Segment-Anzeige**
+**Part 6 – ESP32 mit 7-Segment-Anzeige (entfällt)**
+- **Entscheidung vom 19.10.2026: Part 6 wird nicht umgesetzt.** Das Projekt endet mit Part 5. Die folgenden Punkte gelten nur, falls Part 6 später doch noch gemacht wird.
 - PlatformIO-Projekt. Über den Serial Monitor eine Ziffer ('0'–'9') empfangen → in 4 Bits umwandeln → durchs Netz → 7 Ausgänge mit 0,5-Schwelle → Segmente schalten.
 - Pinbelegung: A=GPIO0, B=GPIO4, C=GPIO16, D=GPIO17, E=GPIO5, F=GPIO18, G=GPIO19, jeweils ~330 Ω Vorwiderstand.
 - Frag mich vorher, ob meine Anzeige **gemeinsame Kathode oder gemeinsame Anode** hat (davon hängt ab, ob HIGH oder LOW „an“ bedeutet).
@@ -99,7 +103,7 @@ Das Laden und Testen der gespeicherten Modelle passiert direkt in `train_xor.py`
 ## Zum Schluss
 Nach jedem abgeschlossenen **Part** (nicht nach jedem Schritt) schreib zusätzlich einen kurzen Abschnitt `### Überblick Part X`: was kann das Projekt jetzt, was fehlt noch.
 
-Wenn alles fertig ist, schreib ans Ende von `LERNPROTOKOLL.md` eine **Gesamtzusammenfassung**: der ganze Weg von „Python-Training am PC“ bis „LED leuchtet am ESP32“ in 10–15 Sätzen, eine einfache Skizze des Ablaufs als Text (z. B. `Training (Python) → 7seg.json/.txt/.h → C-Programm → ESP32 → Anzeige`), plus die 10 wichtigsten Fragen, die der Lehrer stellen könnte, jeweils mit kurzer Antwort.
+Wenn alles fertig ist, schreib ans Ende von `LERNPROTOKOLL.md` eine **Gesamtzusammenfassung**: der ganze Weg von „Python-Training am PC“ bis „C-Programm mit Gewichten aus dem Header“ (Part 6/ESP32 entfällt) in 10–15 Sätzen, eine einfache Skizze des Ablaufs als Text (z. B. `Training (Python) → 7seg.json/.txt/.h → C-Programm`), plus die 10 wichtigsten Fragen, die der Lehrer stellen könnte, jeweils mit kurzer Antwort.
 
 ## Immer gilt
 - Diese Regeln gelten für jede Anfrage in diesem Ordner, auch wenn ich sie nicht extra erwähne.

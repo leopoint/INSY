@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NN Steuerzentrale</title>
+<style>
+  /* Farben als Variablen: hell und dunkel (je nach Windows-Einstellung) */
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f0efec;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.12);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --pos: #2a78d6; --neg: #e34948;
+    --good: #0ca30c; --good-text: #006300; --bad: #d03b3b;
+    --led-on: #e34948; --led-off: #e1e0d9;
+    --console-bg: #1a1a19; --console-ink: #f0efec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #262624;
+      --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.12);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --pos: #3987e5; --neg: #e66767; --good-text: #0ca30c;
+      --led-off: #2c2c2a; --console-bg: #0d0d0d;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #262624;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.12);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --pos: #3987e5; --neg: #e66767; --good-text: #0ca30c;
+    --led-off: #2c2c2a; --console-bg: #0d0d0d;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 20px; }
+  @media (max-width: 700px) { .wrap { padding: 0 16px; } }
+
+  /* Kopfzeile mit Titel, Status und den Reitern */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); }
+  .top { display: flex; align-items: center; gap: 12px; padding: 14px 0 10px; flex-wrap: wrap; }
+  .top h1 { font-size: 18px; margin: 0; }
+  .top .sub { color: var(--ink-2); }
+  .spacer { flex: 1; }
+  nav { display: flex; gap: 4px; overflow-x: auto; }
+  nav button {
+    font: inherit; background: none; border: none; color: var(--ink-2); cursor: pointer;
+    padding: 10px 14px; border-bottom: 3px solid transparent; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+  }
+  nav button .n {
+    display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface-2); font-size: 12px; font-weight: 600;
+  }
+  nav button:hover { color: var(--ink); }
+  nav button.on { color: var(--ink); border-bottom-color: var(--s1); font-weight: 600; }
+  nav button.on .n { background: var(--s1); color: #fff; }
+  nav button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .badge.running .dot { background: var(--s1); animation: pulse 1s infinite; }
+  .badge.done .dot { background: var(--good); }
+  .badge.error .dot, .badge.stopped .dot { background: var(--bad); }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  /* Inhalt eines Reiters */
+  .panel { display: none; padding: 20px 0 40px; }
+  .panel.on { display: block; }
+  .intro {
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--s1);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
+  }
+  .intro h2 { margin: 0 0 4px; font-size: 20px; }
+  .intro p { margin: 0; color: var(--ink-2); max-width: 900px; }
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+  .flow span { background: var(--surface-2); padding: 3px 10px; border-radius: 999px; }
+  .flow b { color: var(--muted); font-weight: normal; }
+
+  .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
+  .cols { display: grid; grid-template-columns: 320px 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .card + .card { margin-top: 18px; }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .hint { color: var(--ink-2); margin: 0 0 12px; font-size: 13px; }
+
+  button.task {
+    font: inherit; cursor: pointer; width: 100%; text-align: left; margin-bottom: 8px;
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; display: grid; grid-template-columns: 18px 1fr; column-gap: 8px;
+  }
+  button.task .play { color: var(--s1); grid-row: span 2; padding-top: 1px; }
+  button.task small { color: var(--ink-2); font-size: 12px; }
+  button.task:hover:not(:disabled) { border-color: var(--s1); }
+  button.task:disabled { opacity: .45; cursor: not-allowed; }
+  button.task.active { border-color: var(--s1); box-shadow: inset 3px 0 0 var(--s1); }
+  button.stop { font: inherit; cursor: pointer; width: 100%; padding: 7px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--bad); }
+  button.stop:disabled { opacity: .35; cursor: not-allowed; }
+
+  pre.console {
+    background: var(--console-bg); color: var(--console-ink); border-radius: 8px;
+    padding: 10px 12px; height: 340px; overflow: auto; margin: 0;
+    font: 12.5px/1.35 Consolas, "Cascadia Mono", monospace; white-space: pre;
+  }
+  pre.console .cmd { color: #86b6ef; }
+  pre.console .ok { color: #3fd13f; }
+  pre.console .bad { color: #ff8a8a; }
+  pre.console .placeholder { color: #898781; }
+
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 1000px) { .results { grid-template-columns: 1fr; } }
+  .results .card + .card, .cols .card + .card { margin-top: 0; }
+  .results + .results { margin-top: 18px; }
+  /* Start-Leiste: Buttons nebeneinander statt untereinander */
+  .startbar { margin-bottom: 18px; }
+  .startrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: stretch; }
+  .startrow [data-tasks] { display: contents; }
+  .startrow button.task { width: auto; min-width: 240px; margin: 0; }
+  .startrow button.stop { width: auto; margin-left: auto; padding: 7px 16px; }
+
+  .chart-wrap { position: relative; }
+  svg { display: block; width: 100%; height: auto; }
+  .axis-text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: var(--surface); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15); display: none; white-space: nowrap; z-index: 2;
+  }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+  .empty { color: var(--muted); text-align: center; padding: 50px 0; }
+
+  table.t { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.t th, table.t td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.t th { color: var(--ink-2); font-weight: 600; }
+  table.t td.num { font-variant-numeric: tabular-nums; }
+
+  /* Netz ansehen */
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .row .lbl { color: var(--ink-2); margin-right: 4px; min-width: 70px; }
+  button.sel { font: inherit; cursor: pointer; min-width: 40px; padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); }
+  button.sel.on { background: var(--s1); color: #fff; border-color: var(--s1); }
+  .playground { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 1000px) { .playground { grid-template-columns: 1fr; } }
+  .bar-row { display: grid; grid-template-columns: 22px 1fr 46px 22px; gap: 6px; align-items: center; margin: 3px 0; font-size: 12px; }
+  .bar-track { position: relative; height: 12px; background: var(--surface-2); border-radius: 3px; }
+  .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--s1); border-radius: 0 4px 4px 0; }
+  .bar-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--ink-2); }
+  .num { font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-2); }
+  .verdict { font-weight: 600; margin-top: 8px; }
+  .verdict.ok { color: var(--good-text); }
+  .verdict.bad { color: var(--bad); }
+  .explain { font-size: 13px; color: var(--ink-2); margin-top: 10px; }
+  ul.keys { margin: 8px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 13px; }
+
+  /* Hinweis in der Online-Version (ohne Server) */
+  .note {
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--s4);
+    border-radius: 10px; padding: 10px 16px; margin: 20px 0 0; color: var(--ink-2); font-size: 13px;
+  }
+  .note b { color: var(--ink); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>Neural Network from Scratch</h1>
+      <span class="sub">Steuerzentrale · 4AHITS INSY</span>
+      <span class="spacer"></span>
+      <span id="badge" class="badge" title="Es kann immer nur ein Programm gleichzeitig laufen"><span class="dot"></span><span id="badgeText">bereit</span></span>
+    </div>
+    <nav id="nav">
+      <button data-tab="py" class="on"><span class="n">1</span>Python-Netz <small>(Part 1+2)</small></button>
+      <button data-tab="tf"><span class="n">2</span>TensorFlow <small>(Part 3)</small></button>
+      <button data-tab="c"><span class="n">3</span>C-Programme <small>(Part 4+5)</small></button>
+      <button data-tab="net"><span class="n">4</span>Netz ansehen</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="note" id="staticNote" hidden>
+    <b>Online-Version:</b> Hier läuft kein Python und kein gcc. Die Buttons spielen deshalb die
+    <b>Aufzeichnung eines echten Laufs vom <span id="recDate"></span></b> ab, mit der echten Ausgabe und Lernkurve.
+    Der Reiter „Netz ansehen“ rechnet live im Browser mit den gespeicherten Gewichten.
+    Zum echten Starten der Programme das Projekt herunterladen und <code>gui/start_gui.bat</code> ausführen.
+  </div>
+
+  <!-- ===== Reiter 1: eigenes Python-Netz ===== -->
+  <section class="panel on" id="tab-py">
+    <div class="intro">
+      <h2>1 · Eigenes Netz in Python trainieren</h2>
+      <p>Hier lernt das selbst programmierte Netz (<code>nn.py</code>) die Aufgaben XOR und 7-Segment-Decoder.
+         Danach werden die Gewichte gespeichert – sie sind die Grundlage für alle weiteren Schritte.</p>
+      <div class="flow"><span>Trainingsdaten</span><b>→</b><span>20 000 Epochen lernen</span><b>→</b><span>Gewichte speichern (JSON, TXT, .h)</span><b>→</b><span>neu laden &amp; testen</span></div>
+    </div>
+    <div class="card startbar">
+      <p class="section-title">Starten</p>
+      <div class="startrow"><div data-tasks="py"></div><button class="stop" disabled>■ Abbrechen</button></div>
+    </div>
+    <div class="results">
+      <div class="card">
+        <p class="section-title">Ausgabe</p>
+        <pre class="console" data-console="py"></pre>
+      </div>
+      <div class="card">
+        <p class="section-title">Lernkurve</p>
+        <p class="hint">Fehler (Loss) während des Trainings, live aus der Ausgabe. Je tiefer, desto besser. Y-Achse logarithmisch.</p>
+        <div data-loss="py"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Reiter 2: TensorFlow ===== -->
+  <section class="panel" id="tab-tf">
+    <div class="intro">
+      <h2>2 · Vergleich mit TensorFlow</h2>
+      <p>Dieselben Netze mit derselben Größe, Lernrate und Epochenzahl, aber mit der fertigen Bibliothek TensorFlow/Keras.
+         Kommt dasselbe heraus, rechnet unser eigenes Netz richtig.</p>
+      <div class="flow"><span>gleiche Daten</span><b>→</b><span>Keras-Netz trainieren</span><b>→</b><span>Genauigkeit, Fehler, Zeit</span><b>→</b><span>mit eigenem Netz vergleichen</span></div>
+    </div>
+    <div class="card startbar">
+      <p class="section-title">Starten</p>
+      <div class="startrow"><div data-tasks="tf"></div><button class="stop" disabled>■ Abbrechen</button></div>
+    </div>
+    <div class="results">
+      <div class="card">
+        <p class="section-title">Ausgabe</p>
+        <pre class="console" data-console="tf"></pre>
+      </div>
+      <div class="card">
+        <p class="section-title">Lernkurve</p>
+        <p class="hint">Fehler (Loss) des TensorFlow-Netzes, live aus der Ausgabe. Y-Achse logarithmisch.</p>
+        <div data-loss="tf"></div>
+      </div>
+    </div>
+    <div class="results" style="grid-template-columns:1fr">
+      <div class="card">
+        <h3>Ergebnis-Vergleich</h3>
+        <p class="hint">Gemessen am 13.10.2026 (aus <code>part3_tensorflow/vergleich.md</code>).</p>
+        <table class="t">
+          <thead><tr><th>Netz</th><th>Variante</th><th>Richtig</th><th>Fehler (MSE)</th><th>Zeit</th></tr></thead>
+          <tbody>
+            <tr><td>XOR 2-2-1</td><td>eigenes Netz</td><td>4/4</td><td class="num">0,00177</td><td class="num">1,9 s</td></tr>
+            <tr><td>XOR 2-2-1</td><td>TensorFlow</td><td>4/4</td><td class="num">0,00038</td><td class="num">8,7 s</td></tr>
+            <tr><td>7-Seg 4-16-7</td><td>eigenes Netz</td><td>70/70</td><td class="num">0,00012</td><td class="num">22,5 s</td></tr>
+            <tr><td>7-Seg 4-16-7</td><td>TensorFlow</td><td>70/70</td><td class="num">0,00065</td><td class="num">21,8 s</td></tr>
+          </tbody>
+        </table>
+        <p class="hint" style="margin-top:10px">Beide lösen alles richtig. Die Fehler unterscheiden sich nur, weil die Startgewichte zufällig verschieden sind.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Reiter 3: C ===== -->
+  <section class="panel" id="tab-c">
+    <div class="intro">
+      <h2>3 · Netz in C ausführen (nur Vorhersage)</h2>
+      <p>Der ESP32 kann kein Python. Deshalb wird nur die Vorwärtsrechnung in C nachgebaut – die fertigen Gewichte kommen aus Python.
+         Beide Programme werden beim Klick zuerst mit gcc kompiliert und dann ausgeführt.</p>
+      <div class="flow"><span>Gewichte aus Python</span><b>→</b><span>C-Programm kompilieren</span><b>→</b><span>10 Ziffern vorhersagen</span><b>→</b><span>mit Tabelle vergleichen</span></div>
+    </div>
+    <div class="cols">
+      <div class="card">
+        <p class="section-title">Starten</p>
+        <div data-tasks="c"></div>
+        <button class="stop" disabled>■ Abbrechen</button>
+      </div>
+      <div class="card">
+        <p class="section-title">Ausgabe</p>
+        <pre class="console" data-console="c"></pre>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Unterschied der beiden C-Programme</h3>
+      <table class="t">
+        <thead><tr><th></th><th>Part 4 – <code>7seg.txt</code></th><th>Part 5 – <code>7seg_net.h</code></th></tr></thead>
+        <tbody>
+          <tr><td>Gewichte kommen aus</td><td>Textdatei, beim Start eingelesen</td><td>Header, beim Kompilieren eingebaut</td></tr>
+          <tr><td>Speicher</td><td><code>malloc</code> / <code>free</code> (dynamisch)</td><td>feste Arrays, kein <code>malloc</code></td></tr>
+          <tr><td>Braucht Dateisystem</td><td>ja</td><td>nein</td></tr>
+          <tr><td>Geeignet für ESP32</td><td>eher nicht</td><td>ja – Gewichte liegen im Flash</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Reiter 4: Netz ansehen ===== -->
+  <section class="panel" id="tab-net">
+    <div class="intro">
+      <h2>4 · Netz ansehen – was passiert bei einer Vorhersage?</h2>
+      <p>Wähle eine Eingabe. Das gespeicherte Netz rechnet sie Schicht für Schicht durch, du siehst jeden Zwischenwert.</p>
+      <div class="flow"><span>Eingabe (Bits)</span><b>→</b><span>Hidden-Neuronen</span><b>→</b><span>Ausgaben</span><b>→</b><span>Schwelle 0,5</span><b>→</b><span>Anzeige</span></div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="lbl">Netz:</span>
+        <button class="sel on" data-model="7seg">7-Segment (4-16-7)</button>
+        <button class="sel" data-model="xor">XOR (2-2-1)</button>
+      </div>
+      <div class="row" id="inputs"></div>
+      <div class="playground">
+        <div>
+          <div class="chart-wrap">
+            <svg id="netSvg" viewBox="0 0 620 420" role="img" aria-label="Netzdiagramm"></svg>
+            <div class="tooltip" id="netTip"></div>
+          </div>
+          <ul class="keys">
+            <li><b>Kreise</b> = Neuronen: je kräftiger blau, desto näher am Wert 1. Maus drüber zeigt den genauen Wert.</li>
+            <li><b>Linien</b> = Beitrag Gewicht × Eingang: <span style="color:var(--pos)">blau positiv</span>, <span style="color:var(--neg)">rot negativ</span>, dick = stark.</li>
+          </ul>
+        </div>
+        <div>
+          <p class="section-title">Ergebnis</p>
+          <svg id="segSvg" viewBox="0 0 120 200" style="max-width:130px;margin:0 auto 12px" aria-label="7-Segment-Anzeige"></svg>
+          <div id="bars"></div>
+          <div class="verdict" id="verdict"></div>
+          <div class="explain" id="explain"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---------- Welche Programme gehören in welchen Reiter ----------
+const TASK_TAB = { train_xor: "py", train_7seg: "py", tf_xor: "tf", tf_7seg: "tf", c_txt: "c", c_header: "c" };
+const TASK_INFO = {
+  train_xor:  "train_xor.py · 2-2-1, speichert xor.json",
+  train_7seg: "train_7seg.py · 4-16-7, speichert JSON/TXT/.h",
+  tf_xor:    "tf_xor.py · Keras, 2-2-1",
+  tf_7seg:    "tf_7seg.py · Keras, 4-16-7",
+  c_txt:      "Part 4 · liest models/7seg.txt",
+  c_header:   "Part 5 · nutzt models/7seg_net.h",
+};
+const TITLES = {};   // lesbare Namen, werden beim Laden vom Server gefüllt
+
+// ---------- Daten wie in train_xor.py / train_7seg.py ----------
+const DATA = {
+  "7seg": {
+    labels: ["0","1","2","3","4","5","6","7","8","9"],
+    inputs: [[0,0,0,0],[0,0,0,1],[0,0,1,0],[0,0,1,1],[0,1,0,0],[0,1,0,1],[0,1,1,0],[0,1,1,1],[1,0,0,0],[1,0,0,1]],
+    targets: [[1,1,1,1,1,1,0],[0,1,1,0,0,0,0],[1,1,0,1,1,0,1],[1,1,1,1,0,0,1],[0,1,1,0,0,1,1],
+              [1,0,1,1,0,1,1],[1,0,1,1,1,1,1],[1,1,1,0,0,0,0],[1,1,1,1,1,1,1],[1,1,1,1,0,1,1]],
+    outNames: ["a","b","c","d","e","f","g"],
+  },
+  "xor": {
+    labels: ["0 0","0 1","1 0","1 1"],
+    inputs: [[0,0],[0,1],[1,0],[1,1]],
+    targets: [[0],[1],[1],[0]],
+    outNames: ["y"],
+  },
+};
+const $ = id => document.getElementById(id);
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// ---------- Reiter umschalten ----------
+document.querySelectorAll("#nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(tab) {
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("on", p.id === "tab-" + tab));
+  if (tab === "net" && !model) loadModel();
+  if (LOSS[tab]) drawLoss(tab);
+}
+
+// ---------- Konsolen und Lernkurven pro Reiter ----------
+const LOSS = {};   // tab -> {series:[{name, points}]}
+document.querySelectorAll("[data-loss]").forEach(div => {
+  const tab = div.dataset.loss;
+  div.innerHTML = `<div class="chart-wrap"><div class="empty">Starte ein Training, dann erscheint hier die Kurve.</div>
+    <svg viewBox="0 0 560 300" role="img" aria-label="Loss pro Epoche"></svg><div class="tooltip"></div></div><div class="legend"></div>`;
+  LOSS[tab] = { series: [], div };
+});
+document.querySelectorAll("[data-console]").forEach(c => {
+  c.innerHTML = '<span class="placeholder">Noch nichts gestartet. Bei „Starten“ ein Programm anklicken.</span>';
+});
+const consoleOf = id => document.querySelector(`[data-console="${TASK_TAB[id]}"]`);
+
+// ---------- Programme starten und Ausgabe live abholen ----------
+let since = 0, polling = null, currentTask = null, lastStatus = "idle", firstPoll = true;
+let RECORDING = null;   // Online-Version ohne Server (z. B. GitHub Pages): aufgezeichnete Läufe
+
+async function loadTasks() {
+  let res;
+  try {
+    const r = await fetch("/api/tasks");
+    if (!r.ok) throw new Error("kein Server");
+    res = await r.json();
+  } catch {
+    return loadRecording();
+  }
+  for (const t of res.tasks) {
+    const b = addTaskButton(t, () => runTask(t.id));
+    if (b && t.id.startsWith("c_") && !res.gcc) { b.disabled = true; b.dataset.nogcc = "1"; b.title = "gcc nicht gefunden"; }
+  }
+  startPolling();
+}
+
+function addTaskButton(t, onclick) {
+  TITLES[t.id] = t.title;
+  const box = document.querySelector(`[data-tasks="${TASK_TAB[t.id]}"]`);
+  if (!box) return null;
+  const b = document.createElement("button");
+  b.className = "task"; b.dataset.id = t.id;
+  b.innerHTML = `<span class="play">▶</span><span>${t.title}</span><small>${TASK_INFO[t.id] ?? ""}</small>`;
+  b.onclick = onclick;
+  box.appendChild(b);
+  return b;
+}
+
+// ---------- Online-Version: aufgezeichnete Läufe abspielen ----------
+let replayTimer = null;
+
+async function loadRecording() {
+  RECORDING = await fetch("aufzeichnung.json").then(r => r.json());
+  $("recDate").textContent = RECORDING.recorded;
+  $("staticNote").hidden = false;
+  for (const t of RECORDING.tasks) addTaskButton(t, () => replay(t));
+}
+
+function replay(rec) {   // spielt die Ausgabe in ca. 3 Sekunden ab, die Zeitanzeige zeigt die echte Dauer
+  stopReplay();
+  startOutput(rec.id);
+  const step = Math.max(1, Math.ceil(rec.lines.length / 60));
+  let i = 0;
+  setStatus("running", 0);
+  replayTimer = setInterval(() => {
+    appendLines(rec.id, rec.lines.slice(i, i + step));
+    i += step;
+    if (i < rec.lines.length) { setStatus("running", rec.elapsed * i / rec.lines.length); return; }
+    clearInterval(replayTimer); replayTimer = null;
+    setStatus(rec.status, rec.elapsed);
+  }, 50);
+}
+
+function stopReplay() {
+  if (!replayTimer) return;
+  clearInterval(replayTimer); replayTimer = null;
+  setStatus("stopped", 0);
+}
+
+async function runTask(id) {
+  const r = await fetch("/api/run/" + id, { method: "POST" });
+  if (!r.ok) { alert((await r.json()).error); return; }
+  startOutput(id);
+  startPolling();
+}
+
+function startOutput(id) {   // Konsole und Lernkurve des passenden Reiters leeren
+  currentTask = id; since = 0;
+  consoleOf(id).innerHTML = "";
+  const tab = TASK_TAB[id];
+  if (LOSS[tab]) { LOSS[tab].series = []; drawLoss(tab); }
+  document.querySelectorAll("button.task").forEach(b => b.classList.toggle("active", b.dataset.id === id));
+}
+
+function startPolling() {
+  if (polling) return;
+  polling = setInterval(poll, 400);
+  poll();
+}
+
+async function poll() {
+  const s = await fetch("/api/log?since=" + since).then(r => r.json());
+  if (s.task && currentTask !== s.task) {
+    startOutput(s.task);
+    if (!firstPoll) showTab(TASK_TAB[s.task]);   // nur bei neu gestartetem Programm hinspringen
+  }
+  firstPoll = false;
+  if (s.task) appendLines(s.task, s.lines);
+  since = s.total;
+  setStatus(s.status, s.elapsed);
+  if (s.status !== "running") {
+    clearInterval(polling); polling = null;
+    if (lastStatus === "running") afterRun();
+  }
+  lastStatus = s.status;
+}
+
+function appendLines(id, lines) {
+  if (!lines.length) return;
+  const con = consoleOf(id), tab = TASK_TAB[id];
+  const atBottom = con.scrollTop + con.clientHeight >= con.scrollHeight - 30;
+  const frag = document.createDocumentFragment();
+  for (const line of lines) {
+    const span = document.createElement("span");
+    if (line.startsWith("$ ")) span.className = "cmd";
+    else if (/\bOK\b|10\/10|70\/70|4\/4/.test(line)) span.className = "ok";
+    else if (/FALSCH|Fehler|Error|Traceback|Code \d/.test(line)) span.className = "bad";
+    span.textContent = line + "\n";
+    frag.appendChild(span);
+    if (LOSS[tab]) parseLoss(tab, line);
+  }
+  con.appendChild(frag);
+  if (atBottom) con.scrollTop = con.scrollHeight;
+  if (LOSS[tab]) drawLoss(tab);
+}
+
+function setStatus(status, elapsed) {
+  const names = { idle: "bereit", running: "läuft", done: "fertig", error: "Fehler", stopped: "abgebrochen" };
+  const what = currentTask && status !== "idle" ? (TITLES[currentTask] ?? currentTask) + " · " : "";
+  $("badge").className = "badge " + status;
+  $("badgeText").textContent = what + names[status] + (status !== "idle" ? ` · ${elapsed.toFixed(1)} s` : "");
+  const running = status === "running";
+  document.querySelectorAll("button.stop").forEach(b => b.disabled = !running);
+  document.querySelectorAll("button.task").forEach(b => { if (!b.dataset.nogcc) b.disabled = running; });
+}
+
+function afterRun() {
+  model = null;           // neu trainiertes Modell beim nächsten Ansehen frisch laden
+  if ($("tab-net").classList.contains("on")) loadModel();
+}
+
+document.querySelectorAll("button.stop").forEach(b => b.onclick = () => RECORDING ? stopReplay() : fetch("/api/stop", { method: "POST" }));
+
+// ---------- Lernkurve ----------
+function parseLoss(tab, line) {
+  const series = LOSS[tab].series;
+  const v = line.match(/Versuch\s+(\d+)/);
+  if (v) { series.push({ name: "Versuch " + v[1], points: [] }); return; }
+  const m = line.match(/Epoche\s+(\d+)\s*\|\s*Loss:\s*([0-9.eE+-]+)/);
+  if (!m) return;
+  const ep = +m[1], loss = +m[2];
+  let s = series[series.length - 1];
+  if (!s || (s.points.length && ep < s.points[s.points.length - 1][0])) {
+    s = { name: "Loss", points: [] }; series.push(s);
+  }
+  if (loss > 0) s.points.push([ep, loss]);
+}
+
+function drawLoss(tab) {
+  const { series, div } = LOSS[tab];
+  const svg = div.querySelector("svg"), tip = div.querySelector(".tooltip"), legend = div.querySelector(".legend");
+  svg.innerHTML = ""; legend.innerHTML = "";
+  const all = series.flatMap(s => s.points);
+  div.querySelector(".empty").style.display = all.length ? "none" : "block";
+  svg.style.display = all.length ? "block" : "none";
+  if (!all.length) return;
+
+  const W = 560, H = 300, L = 56, R = 16, T = 12, B = 34;
+  const maxX = Math.max(20000, ...all.map(p => p[0]));
+  let lo = Math.floor(Math.log10(Math.min(...all.map(p => p[1]))));
+  let hi = Math.ceil(Math.log10(Math.max(...all.map(p => p[1]))));
+  if (hi === lo) hi = lo + 1;
+  const x = e => L + (e / maxX) * (W - L - R);
+  const y = v => T + (hi - Math.log10(v)) / (hi - lo) * (H - T - B);
+
+  for (let k = lo; k <= hi; k++) {            // Gitterlinien je Zehnerpotenz
+    el("line", { x1: L, x2: W - R, y1: y(10 ** k), y2: y(10 ** k), stroke: css("--grid"), "stroke-width": 1 }, svg);
+    el("text", { x: L - 6, y: y(10 ** k) + 4, "text-anchor": "end", class: "axis-text" }, svg).textContent =
+      String(+(10 ** k).toPrecision(1)).replace(".", ",");
+  }
+  for (let e = 0; e <= maxX; e += 5000) {
+    el("text", { x: x(e), y: H - B + 18, "text-anchor": "middle", class: "axis-text" }, svg).textContent = e.toLocaleString("de-AT");
+  }
+  el("line", { x1: L, x2: W - R, y1: H - B, y2: H - B, stroke: css("--axis") }, svg);
+  el("text", { x: W - R, y: H - 2, "text-anchor": "end", class: "axis-text" }, svg).textContent = "Epoche";
+
+  const colors = ["--s1", "--s2", "--s3", "--s4"];
+  const visible = series.filter(s => s.points.length);
+  series.forEach((s, i) => {
+    if (!s.points.length) return;
+    const c = css(colors[i % colors.length]);
+    el("path", { d: s.points.map((p, j) => (j ? "L" : "M") + x(p[0]) + "," + y(p[1])).join(""),
+      fill: "none", stroke: c, "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+    const last = s.points[s.points.length - 1];
+    el("circle", { cx: x(last[0]), cy: y(last[1]), r: 4, fill: c, stroke: css("--surface"), "stroke-width": 2 }, svg);
+    if (visible.length > 1) legend.insertAdjacentHTML("beforeend", `<span><i style="background:${c}"></i>${s.name}</span>`);
+  });
+
+  // Hover: senkrechte Linie + Werte aller Kurven an dieser Epoche
+  const cross = el("line", { y1: T, y2: H - B, stroke: css("--axis"), "stroke-dasharray": "3 3", visibility: "hidden" }, svg);
+  const hit = el("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }, svg);
+  hit.addEventListener("mousemove", ev => {
+    const box = svg.getBoundingClientRect();
+    const ep = Math.max(0, Math.min(maxX, ((ev.clientX - box.left) / box.width * W - L) / (W - L - R) * maxX));
+    let rows = [], cx = null;
+    series.forEach((s, i) => {
+      if (!s.points.length) return;
+      const p = s.points.reduce((a, b) => Math.abs(b[0] - ep) < Math.abs(a[0] - ep) ? b : a);
+      cx = cx ?? p[0];
+      rows.push(`<span style="color:${css(colors[i % colors.length])}">●</span> ${s.name}: <b>${p[1].toFixed(6)}</b>`);
+    });
+    cross.setAttribute("x1", x(cx)); cross.setAttribute("x2", x(cx)); cross.setAttribute("visibility", "visible");
+    tip.innerHTML = `Epoche ${cx.toLocaleString("de-AT")}<br>` + rows.join("<br>");
+    tip.style.display = "block";
+    tip.style.left = Math.min((x(cx) / W) * box.width + 12, box.width - tip.offsetWidth) + "px";
+    tip.style.top = "10px";
+  });
+  hit.addEventListener("mouseleave", () => { tip.style.display = "none"; cross.setAttribute("visibility", "hidden"); });
+}
+
+// ---------- Netz ansehen ----------
+let modelName = "7seg", model = null, selected = 3;
+
+document.querySelectorAll("button[data-model]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("button[data-model]").forEach(x => x.classList.toggle("on", x === b));
+  modelName = b.dataset.model; selected = modelName === "7seg" ? 3 : 1;
+  loadModel();
+});
+
+async function loadModel() {
+  // Online-Version: Modell direkt aus dem Ordner models/ laden statt über den Server
+  const r = await fetch(RECORDING ? `../models/${modelName}.json` : "/api/model?name=" + modelName);
+  if (!r.ok) {
+    model = null; $("netSvg").innerHTML = ""; $("inputs").innerHTML = "";
+    $("explain").textContent = "Modell noch nicht trainiert – zuerst im Reiter 1 trainieren.";
+    return;
+  }
+  model = await r.json();
+  const d = DATA[modelName];
+  $("inputs").innerHTML = `<span class="lbl">${modelName === "7seg" ? "Ziffer:" : "Eingabe:"}</span>`;
+  d.labels.forEach((lbl, i) => {
+    const b = document.createElement("button");
+    b.className = "sel" + (i === selected ? " on" : ""); b.textContent = lbl;
+    b.onclick = () => { selected = i; [...$("inputs").querySelectorAll("button")].forEach((x, j) => x.classList.toggle("on", j === i)); predict(); };
+    $("inputs").appendChild(b);
+  });
+  $("segSvg").style.display = modelName === "7seg" ? "block" : "none";
+  predict();
+}
+
+async function predict() {
+  const d = DATA[modelName];
+  const x = d.inputs[selected];
+  const r = RECORDING ? { activations: forward(x) }
+                      : await fetch(`/api/predict?name=${modelName}&x=${x.join(",")}`).then(r => r.json());
+  if (r.error) return;
+  drawNet(r.activations);
+  const out = r.activations[r.activations.length - 1];
+  drawBars(out, d.targets[selected], d.outNames);
+  if (modelName === "7seg") drawSeg(out);
+  const ok = out.every((v, i) => (v >= 0.5 ? 1 : 0) === d.targets[selected][i]);
+  $("verdict").className = "verdict " + (ok ? "ok" : "bad");
+  $("verdict").textContent = ok ? "✔ Richtig – stimmt mit der Tabelle überein" : "✘ Falsch – weicht von der Tabelle ab";
+  const z0 = model.layers[0].biases[0] + model.layers[0].weights[0].reduce((s, w, i) => s + w * x[i], 0);
+  $("explain").innerHTML = `Eingabe <b>[${x.join(", ")}]</b>. Beispiel Hidden-Neuron 1: z = Bias + Σ Gewicht·Eingang = <b>${z0.toFixed(2)}</b> → Sigmoid → <b>${r.activations[1][0].toFixed(2)}</b>. ` +
+    `Jede Ausgabe ab 0,5 gilt als „an“.`;
+}
+
+// Vorwärtsrechnung im Browser (Online-Version), genau wie in nn.py:
+// jedes Neuron = Sigmoid(Bias + Σ Gewicht·Eingang), Ergebnis jeder Schicht wird gemerkt
+function forward(x) {
+  const acts = [x.slice()];
+  for (const L of model.layers) {
+    const prev = acts[acts.length - 1];
+    acts.push(L.weights.map((ws, n) => 1 / (1 + Math.exp(-(L.biases[n] + ws.reduce((s, w, i) => s + w * prev[i], 0))))));
+  }
+  return acts;
+}
+
+function mix(a, b, t) {   // Farbe zwischen Hintergrund (t=0) und Blau (t=1)
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const A = p(a), B = p(b);
+  return "rgb(" + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(",") + ")";
+}
+
+function drawNet(acts) {
+  const svg = $("netSvg"); svg.innerHTML = "";
+  const sizes = model.layer_sizes, W = 620, H = 420, padX = 70, padY = 24;
+  const names = ["Eingabe", "Hidden", "Ausgabe"];
+  const pos = sizes.map((n, l) => {
+    const cx = padX + l * (W - 2 * padX) / (sizes.length - 1);
+    const gap = Math.min(24, (H - 2 * padY - 20) / Math.max(n - 1, 1));
+    const top = (H - 20 - gap * (n - 1)) / 2;
+    return Array.from({ length: n }, (_, i) => [cx, top + i * gap]);
+  });
+  const r = Math.min(10, Math.max(6, 10 - sizes[1] / 8));
+
+  let maxC = 1e-9;
+  model.layers.forEach((L, l) => L.weights.forEach(ws => ws.forEach((w, i) => maxC = Math.max(maxC, Math.abs(w * acts[l][i])))));
+  model.layers.forEach((L, l) => L.weights.forEach((ws, n) => ws.forEach((w, i) => {
+    const c = w * acts[l][i], s = Math.abs(c) / maxC;
+    if (s < 0.02) return;
+    el("line", { x1: pos[l][i][0], y1: pos[l][i][1], x2: pos[l + 1][n][0], y2: pos[l + 1][n][1],
+      stroke: c >= 0 ? css("--pos") : css("--neg"), "stroke-width": 0.5 + 3 * s, "stroke-opacity": 0.15 + 0.7 * s }, svg);
+  })));
+
+  const surface = css("--surface"), blue = css("--s1"), tip = $("netTip");
+  pos.forEach((col, l) => {
+    el("text", { x: col[0][0], y: H - 4, "text-anchor": "middle", class: "axis-text" }, svg).textContent = `${names[l]} (${sizes[l]})`;
+    col.forEach(([cx, cy], i) => {
+      const a = acts[l][i];
+      el("circle", { cx, cy, r, fill: mix(surface, blue, a), stroke: css("--axis"), "stroke-width": 1.2 }, svg);
+      if (l === 0 || l === sizes.length - 1) {
+        const lbl = l === 0 ? `x${i + 1}` : DATA[modelName].outNames[i];
+        el("text", { x: l === 0 ? cx - r - 6 : cx + r + 6, y: cy + 4, "text-anchor": l === 0 ? "end" : "start", class: "axis-text" }, svg)
+          .textContent = l === 0 ? `${lbl} = ${a}` : `${lbl} ${a.toFixed(2)}`;
+      }
+      const hitC = el("circle", { cx, cy, r: r + 5, fill: "transparent" }, svg);
+      hitC.addEventListener("mousemove", ev => {
+        const box = svg.getBoundingClientRect();
+        let txt = `<b>${names[l]} ${i + 1}</b><br>Wert: ${a.toFixed(4)}`;
+        if (l > 0) txt += `<br>Bias: ${model.layers[l - 1].biases[i].toFixed(3)}`;
+        tip.innerHTML = txt; tip.style.display = "block";
+        tip.style.left = Math.min(ev.clientX - box.left + 12, box.width - tip.offsetWidth) + "px";
+        tip.style.top = (ev.clientY - box.top + 12) + "px";
+      });
+      hitC.addEventListener("mouseleave", () => tip.style.display = "none");
+    });
+  });
+}
+
+function drawBars(out, target, names) {
+  $("bars").innerHTML = out.map((v, i) => {
+    const ok = (v >= 0.5 ? 1 : 0) === target[i];
+    return `<div class="bar-row"><b>${names[i]}</b>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v * 100).toFixed(1)}%"></div><div class="bar-mid"></div></div>
+      <span class="num">${v.toFixed(3)}</span><span title="${ok ? "richtig" : "falsch"}" style="color:${ok ? "var(--good-text)" : "var(--bad)"}">${ok ? "✔" : "✘"}</span></div>`;
+  }).join("") + `<div style="color:var(--muted);font-size:11px;margin-top:4px">Strich in der Mitte = Schwelle 0,5</div>`;
+}
+
+function drawSeg(out) {   // Segmente a..g als Polygone, leuchtet bei Wert >= 0,5
+  const svg = $("segSvg"); svg.innerHTML = "";
+  const h = (x, y) => `${x},${y + 8} ${x + 8},${y} ${x + 72},${y} ${x + 80},${y + 8} ${x + 72},${y + 16} ${x + 8},${y + 16}`;
+  const v = (x, y) => `${x + 8},${y} ${x + 16},${y + 8} ${x + 16},${y + 72} ${x + 8},${y + 80} ${x},${y + 72} ${x},${y + 8}`;
+  const shapes = [h(20, 4), v(92, 14), v(92, 104), h(20, 180), v(12, 104), v(12, 14), h(20, 92)];
+  shapes.forEach((pts, i) => el("polygon", { points: pts, fill: out[i] >= 0.5 ? css("--led-on") : css("--led-off") }, svg));
+}
+
+// ---------- Start ----------
+loadTasks().then(() => { if (location.hash) showTab(location.hash.slice(1)); });   // z. B. localhost:8000/#net öffnet direkt Reiter 4
+</script>
+</body>
+</html>
