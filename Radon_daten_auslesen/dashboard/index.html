@@ -226,6 +226,19 @@
     </section>
   </div>
 
+  <div class="grid2 row">
+    <section class="card">
+      <h2>Tag und Nacht</h2>
+      <p class="hint">Mittelwert nachts (22 bis 6 Uhr) und tagsüber (6 bis 22 Uhr) je Raum, in Bq/m³</p>
+      <div class="chartbox mid"><canvas id="tagnacht"></canvas></div>
+    </section>
+    <section class="card">
+      <h2>Wochentage</h2>
+      <p class="hint">Mittelwert des ganzen Hauses je Wochentag und wie oft an diesem Wochentag gelüftet wurde (pro Tag)</p>
+      <div class="tablewrap"><table id="wochentage"></table></div>
+    </section>
+  </div>
+
   <section class="card">
     <h2>Fingerabdruck eines Raums</h2>
     <p class="hint">Jede Spalte ist ein Tag, jede Zeile eine Uhrzeit (oben 0 Uhr, unten 23 Uhr). So sieht man auf einen Blick, an welchen Tagen und zu welcher Uhrzeit Radon hoch ist. Weiße Punkte: hier wurde gelüftet. Mit der Maus über das Bild fahren zeigt den Wert.</p>
@@ -238,6 +251,7 @@
   <section class="card">
     <h2>Raumklima: Küche und Schlafzimmer</h2>
     <p class="hint">Nur in diesen beiden Räumen gibt es Luftsensoren. CO₂ steigt, wenn Menschen im Raum sind und nicht gelüftet wird. Über etwa 1000 ppm gilt die Luft als verbraucht.</p>
+    <div class="tablewrap" style="margin-bottom:14px"><table id="klimatabelle"></table></div>
     <div class="grid2">
       <div><h3>CO₂ (ppm)</h3><div class="chartbox small"><canvas id="k_co2"></canvas></div></div>
       <div><h3>Temperatur innen (°C)</h3><div class="chartbox small"><canvas id="k_temp"></canvas></div></div>
@@ -890,7 +904,52 @@ function fingerabdruckZeichnen() {
   cv.onmouseleave = () => document.getElementById("fpinfo").textContent = "";
 }
 
+// Tag (6–22 Uhr) gegen Nacht (22–6 Uhr) je Raum
+function tagNachtZeichnen() {
+  const kz = radon.map(r => {
+    const tag = [], nacht = [];
+    for (let k = A; k <= B; k++) if (r.werte[k] != null) (UHRZEIT[k] >= 6 && UHRZEIT[k] < 22 ? tag : nacht).push(r.werte[k]);
+    return { r, tag: mittel(tag), nacht: mittel(nacht) };
+  }).filter(x => x.tag != null);
+  const opt = { responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: true, position: "top", align: "start", labels: { color: farbe("--ink-2"), boxWidth: 10, boxHeight: 10, font: { size: 12 } } },
+      tooltip: { backgroundColor: farbe("--surface"), titleColor: farbe("--ink"), bodyColor: farbe("--ink-2"), borderColor: farbe("--border"), borderWidth: 1,
+                 callbacks: { label: i => ` ${i.dataset.label}: ${zahl(i.parsed.y)} Bq/m³` } } },
+    scales: { x: { ticks: { color: farbe("--ink-2"), maxRotation: 0, autoSkip: false, font: { size: 11 } }, grid: { display: false }, border: { color: farbe("--axis") } },
+              y: { min: 0, ticks: { color: farbe("--muted") }, grid: { color: farbe("--grid") }, border: { display: false } } } };
+  neu("tagnacht", { type: "bar", options: opt, data: { labels: kz.map(x => x.r.ort.replace(" (Sockel)", " Sockel")),
+    datasets: [{ label: "Nacht (22–6 Uhr)", data: kz.map(x => x.nacht), backgroundColor: farbe("--s7"), borderRadius: 4 },
+               { label: "Tag (6–22 Uhr)", data: kz.map(x => x.tag), backgroundColor: farbe("--s4"), borderRadius: 4 }] } });
+}
+
+// Wochentage: Haus-Mittel und Lüften je Wochentag
+function wochentageZeichnen() {
+  const namen = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+  const wt = d => (new Date(d + "T12:00:00").getDay() + 6) % 7;
+  const werte = namen.map(() => []), tage = namen.map(() => new Set()), lueft = Array(7).fill(0);
+  for (let k = A; k <= B; k++) { const h = hausWert(k); const w = wt(DATUM[k]); tage[w].add(DATUM[k]); if (h != null) werte[w].push(h); }
+  lueftenIm().forEach(e => lueft[wt(fISO.format(e.zeit))]++);
+  const m = werte.map(mittel);
+  document.getElementById("wochentage").innerHTML = `<tr><th>Wochentag</th><th style="text-align:center">Radon Ø</th><th>Lüften pro Tag</th></tr>` +
+    namen.map((n, i) => `<tr><td>${n}</td>${m[i] == null ? `<td class="zelle leer">–</td>` : `<td class="zelle" style="background:${radonFarbe(m[i])}">${zahl(m[i])}</td>`}
+      <td>${tage[i].size ? zahl(lueft[i] / tage[i].size, 1) : "–"}</td></tr>`).join("");
+}
+
 function klimaZeichnen() {
+  // Kennzahlen je Raum mit Luftsensor
+  const zeilen = ["Küche", "Schlafzimmer"].map(ort => {
+    const c = reihe(ort, "CO"), t = reihe(ort, "Temperatur innen"), f = reihe(ort, "rel. Luftfeuchte");
+    const cw = c ? werteIm(c) : [], tw = t ? werteIm(t) : [], fw = f ? werteIm(f) : [];
+    if (!cw.length && !tw.length) return "";
+    const z = (w, st) => w.length ? zahl(mittel(w), st) : "–";
+    return `<tr><td>${ort}</td><td>${z(cw, 0)} ppm</td><td>${cw.length ? zahl(Math.max(...cw)) + " ppm" : "–"}</td>
+      <td>${cw.length ? zahl(cw.filter(v => v > 1000).length) + " h" : "–"}</td><td>${z(tw, 1)} °C</td>
+      <td>${tw.length ? zahl(Math.min(...tw), 1) + "–" + zahl(Math.max(...tw), 1) + " °C" : "–"}</td><td>${z(fw, 0)} %</td>
+      <td>${fw.length ? zahl(fw.filter(v => v < 30 || v > 60).length / fw.length * 100) + " %" : "–"}</td></tr>`;
+  }).join("");
+  document.getElementById("klimatabelle").innerHTML = zeilen ? `<tr><th>Raum</th><th>CO₂ Ø</th><th>CO₂ max</th><th>Stunden über 1000 ppm</th>
+    <th>Temperatur Ø</th><th>Temperatur min–max</th><th>Feuchte Ø</th><th>Feuchte außerhalb 30–60 %</th></tr>` + zeilen
+    : `<tr><td>Im gewählten Zeitraum gibt es noch keine Raumklima-Daten (Messbeginn ${tag(CO2_START)}).</td></tr>`;
   const zwei = (id, groesse, einheit, stellen, grenzen) => {
     const ds = [["Küche", "--s2"], ["Schlafzimmer", "--s4"]].map(([ort, f]) => {
       const r = reihe(ort, groesse); return r && linie(ort, punkte(r), farbe(f)); }).filter(Boolean);
@@ -1078,7 +1137,7 @@ function tabelleZeichnen() {
 // =====================================================================
 function allesZeichnen() {
   kachelnZeichnen(); skalaZeichnen(); planZeichnen(); vergleichZeichnen(); verlaufZeichnen();
-  monateZeichnen(); stundenZeichnen(); fingerabdruckZeichnen(); klimaZeichnen(); wetterZeichnen();
+  monateZeichnen(); stundenZeichnen(); tagNachtZeichnen(); wochentageZeichnen(); fingerabdruckZeichnen(); klimaZeichnen(); wetterZeichnen();
   lueftenZeichnen(); korrelationZeichnen(); erkenntnisseZeichnen(); ereignisseZeichnen(); qualitaetZeichnen(); tabelleZeichnen();
 }
 window.addEventListener("resize", () => fingerabdruckZeichnen());

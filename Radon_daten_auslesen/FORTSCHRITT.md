@@ -25,6 +25,7 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Projekt auf GitHub hochgeladen, das Dashboard ist über GitHub Pages online.
 - **17.11.2026** – Vollständige Messdaten als CSV übernommen: 229.403 Zeilen vom 24.03. bis 13.10.2026 mit 7 Radonsensoren, Raumklima in Küche und Schlafzimmer und Wetterdaten. Das Auslese-Skript bildet jetzt Stundenmittel. Das Dashboard wurde für mehrere Monate und alle Räume erweitert: Zeitraumauswahl, automatische Erkenntnisse, Raumvergleich, Monatsübersicht, Tag-Uhrzeit-Bild je Raum, Raumklima, Zusammenhänge mit Wetter und CO₂, Ereignisse und Datenqualität. Ergebnis: Das Haus liegt im Mittel bei 52 Bq/m³ und damit deutlich unter dem Referenzwert. Anfang August lagen jedoch alle Räume mehrere Tage gleichzeitig über 300 Bq/m³.
 - **17.11.2026** – Lüftungserkennung ergänzt: Ein schneller Abfall von CO₂ oder Radon wird als Lüften gewertet (338 Lüftungen erkannt). Das Lüften ist jetzt in allen Ansichten des Dashboards eingetragen. Ergebnis: Am häufigsten wird um 6 Uhr gelüftet. In der Küche wurde vom 31.07. bis 06.08.2026 fast eine Woche lang nicht gelüftet, genau in der Zeit mit den höchsten Radonwerten.
+- **17.11.2026** – Weitere Auswertungen ergänzt: Tag-Nacht-Vergleich je Raum, Wochentage und Kennzahlen zum Raumklima (z. B. Stunden mit CO₂ über 1000 ppm).
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
 

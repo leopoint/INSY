@@ -28,7 +28,7 @@ CSV oder PDF → Text → Tabelle → bereinigen → Stundenwerte → daten/rado
 - Raumplan: schematischer Grundriss, jeder Raum in der Farbe seines Radonwerts (grün bis rot), mit Zeitregler zum Abspielen
 - Lüften: automatisch erkannt (schneller Abfall von CO₂ oder Radon) und überall eingetragen: Raumplan, Zeitverlauf, Fingerabdruck, Erkenntnisse, Ereignisse, Tagestabelle
 - Räume im Vergleich, Zeitverlauf mit den Grenzen 100 Bq/m³ (WHO) und 300 Bq/m³ (Referenzwert Österreich)
-- Monatsübersicht, Tagesverlauf und „Fingerabdruck“ (Tag × Uhrzeit) je Raum
+- Monatsübersicht, Tagesverlauf, Tag/Nacht-Vergleich, Wochentage und „Fingerabdruck“ (Tag × Uhrzeit) je Raum
 - Raumklima (CO₂, Temperatur, Feuchte, Luftdruck) und Wetter
 - Zusammenhänge zwischen Radon, Wetter und CO₂ (Korrelation)
 - Ereignisse (Spitzen, lange Phasen über 300, vermutete Stromausfälle), Datenqualität je Sensor, Tagesmittel als Tabelle

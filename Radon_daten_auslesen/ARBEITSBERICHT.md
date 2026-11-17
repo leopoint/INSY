@@ -60,8 +60,10 @@ Oben wählt man den Zeitraum: gesamt, die letzten 7 oder 30 Tage, einen Monat od
 | Zeitverlauf | Radonkurve je Raum (einzeln ein- und ausblendbar) mit den Grenzen 100 Bq/m³ (WHO) und 300 Bq/m³ (Referenzwert Österreich) |
 | Monatsübersicht | Tabelle Raum × Monat, jede Zelle in der Farbe ihres Mittelwerts |
 | Tagesverlauf | mittlerer Radonwert je Uhrzeit für jeden Raum |
+| Tag und Nacht | Mittelwert je Raum nachts (22–6 Uhr) und tagsüber (6–22 Uhr) |
+| Wochentage | Mittelwert des ganzen Hauses und Lüftungen pro Tag je Wochentag |
 | Fingerabdruck | Bild eines Raums: jede Spalte ein Tag, jede Zeile eine Uhrzeit, Farbe = Radonwert |
-| Raumklima | CO₂, Temperatur, Luftfeuchte und Luftdruck in Küche und Schlafzimmer |
+| Raumklima | Kennzahlen (CO₂-Mittel und -Maximum, Stunden über 1000 ppm, Temperaturbereich, Anteil der Zeit mit Luftfeuchte außerhalb 30–60 %) und Verläufe von CO₂, Temperatur, Luftfeuchte und Luftdruck in Küche und Schlafzimmer |
 | Wetter | Außen- und Bodentemperatur, Luftdruck, Wind |
 | Zusammenhänge | Korrelation zwischen Radon in jedem Raum und Außentemperatur, Temperaturunterschied innen–außen, Luftdruck, Wind, Bodentemperatur und CO₂ |
 | Ereignisse | höchste Spitzen, längste Phasen über 300 Bq/m³ und gleichzeitige Neustarts mehrerer Sensoren (vermutlich Stromausfälle) |
@@ -77,6 +79,8 @@ Jede Messgröße hat ihr eigenes Diagramm, damit nie zwei Einheiten auf einer Ac
 - **Jahreszeit:** August hatte die höchsten Werte (101 Bq/m³), September die niedrigsten (30 Bq/m³).
 - **Anfang August:** Vom 2. bis 6.08. lagen bis zu alle sieben Räume gleichzeitig über 300 Bq/m³, teilweise mehrere Tage am Stück (Küchensockel 94 Stunden). Wenn alle Räume zugleich steigen, liegt die Ursache im ganzen Haus, zum Beispiel weil längere Zeit nicht gelüftet wurde.
 - **Lüften:** 338 Lüftungen erkannt (etwa 1,7 pro Tag), am häufigsten um 6 Uhr, im Schlafzimmer meist um 22 Uhr. In der Küche wurde vom 31.07. bis 06.08.2026 fast 7 Tage lang kein Lüften erkannt, genau in der Zeit mit den höchsten Werten. Am 06.08. gegen 20 Uhr wurde in fast allen Räumen gleichzeitig gelüftet, danach fielen die Werte. War Radon vorher über 100 Bq/m³, lag es 2 Stunden nach dem Lüften im Schnitt um etwa die Hälfte niedriger.
+- **Tag und Nacht:** In fast allen Räumen ist Radon nachts höher als tagsüber, am deutlichsten im Wohnzimmer, in der Küche und im Büro.
+- **Raumklima:** Im Schlafzimmer lag CO₂ 117 Stunden über 1000 ppm (verbrauchte Luft), in der Küche nur 12 Stunden.
 - **Tageszeit:** Am höchsten ist Radon um 6 Uhr früh, am niedrigsten um 18 Uhr. Nachts sammelt es sich an, tagsüber wird gelüftet.
 - **März:** In der ersten Woche (24.03.) wurden in der Küche bis zu 707 Bq/m³ gemessen (Einzelwert). Danach sanken die Werte deutlich.
 - **Zusammenhänge:** Am deutlichsten hängen Werkstatt und Technikraum mit der Bodentemperatur in 54 cm Tiefe zusammen (r ≈ 0,5). Die übrigen Räume zeigen nur schwache Zusammenhänge mit dem Wetter.
