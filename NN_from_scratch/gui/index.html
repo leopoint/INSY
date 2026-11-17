@@ -192,12 +192,6 @@
 
 <main class="wrap">
 
-  <div class="note" id="staticNote" hidden>
-    <b>Online-Version:</b> Hier läuft kein Python und kein gcc. Die Buttons spielen deshalb die
-    <b>Aufzeichnung eines echten Laufs vom <span id="recDate"></span></b> ab, mit der echten Ausgabe und Lernkurve.
-    Der Reiter „Netz ansehen“ rechnet live im Browser mit den gespeicherten Gewichten.
-    Zum echten Starten der Programme das Projekt herunterladen und <code>gui/start_gui.bat</code> ausführen.
-  </div>
 
   <!-- ===== Reiter 1: eigenes Python-Netz ===== -->
   <section class="panel on" id="tab-py">
@@ -450,8 +444,6 @@ let replayTimer = null;
 
 async function loadRecording() {
   RECORDING = await fetch("aufzeichnung.json").then(r => r.json());
-  $("recDate").textContent = RECORDING.recorded;
-  $("staticNote").hidden = false;
   for (const t of RECORDING.tasks) addTaskButton(t, () => replay(t));
 }
 
