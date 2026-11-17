@@ -18,7 +18,6 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Projekt angelegt. Die Mess-PDF enthält eine CSV-Tabelle mit 236 Messzeilen (24.03.2026, 20:37 bis 25.03.2026, 14:59) und 29 Spalten. Werte gibt es für den Radonsensor in der Küche und für stündliche Wetterdaten, die übrigen Räume sind in dieser Datei leer.
 - **17.11.2026** – Auslese-Skript erstellt. Es repariert die fehlerhafte Zeichenkodierung der PDF, erkennt einen Sensor-Neustart und entfernt die drei Anlaufwerte mit 0 Bq/m³ danach.
 - **17.11.2026** – Erste Version des Dashboards erstellt. Ergebnis für die Küche: Mittelwert 350 Bq/m³, Höchstwert 707 Bq/m³, 61 % der Messzeit über dem österreichischen Referenzwert von 300 Bq/m³.
-
 - **17.11.2026** – Raumplan ergänzt: Ein schematischer Grundriss zeigt jeden Raum in der Farbe seines Radonwerts, mit Zeitregler und den Wetterwerten draußen.
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
