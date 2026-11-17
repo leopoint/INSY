@@ -11,7 +11,8 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 |------|--------|--------|
 | 1 | Daten aus der PDF auslesen und bereinigen (`auslesen.py`) | ✅ fertig |
 | 2 | Dashboard mit Kennzahlen, Verlauf, Tagesverlauf, Auffälligkeiten und Wetter | ✅ erste Version |
-| 3 | Dokumentation und Veröffentlichung über GitHub Pages | 🔄 in Arbeit |
+| 3 | Raumplan mit Farbskala und Zeitregler | ✅ fertig |
+| 4 | Dokumentation und Veröffentlichung über GitHub Pages | ✅ fertig |
 
 ## Verlauf
 
@@ -19,6 +20,7 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Auslese-Skript erstellt. Es repariert die fehlerhafte Zeichenkodierung der PDF, erkennt einen Sensor-Neustart und entfernt die drei Anlaufwerte mit 0 Bq/m³ danach.
 - **17.11.2026** – Erste Version des Dashboards erstellt. Ergebnis für die Küche: Mittelwert 350 Bq/m³, Höchstwert 707 Bq/m³, 61 % der Messzeit über dem österreichischen Referenzwert von 300 Bq/m³.
 - **17.11.2026** – Raumplan ergänzt: Ein schematischer Grundriss zeigt jeden Raum in der Farbe seines Radonwerts, mit Zeitregler und den Wetterwerten draußen.
+- **17.11.2026** – Projekt auf GitHub hochgeladen, das Dashboard ist über GitHub Pages online.
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
 
@@ -26,7 +28,7 @@ Das Projekt wird mit Claude Code (Modell Claude Opus 5.5) als Tutor und Programm
 
 | Sitzung | Dauer | Antworten | Eingabe | Ausgabe | Cache geschrieben | Cache gelesen | Kosten (API-Preis) |
 |---|---|---|---|---|---|---|---|
-| 17.11.2026 15:24 | 7 min | 36 | 74 | 38.097 | 120.542 | 4.955.037 | 2,72 $ |
-| **Summe** | | 36 | 74 | 38.097 | 120.542 | 4.955.037 | **2,72 $** |
+| 17.11.2026 15:24 | 13 min | 70 | 150 | 74.505 | 170.673 | 11.774.402 | 5,21 $ |
+| **Summe** | | 70 | 150 | 74.505 | 170.673 | 11.774.402 | **5,21 $** |
 
-Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 15:32.
+Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 15:38.
