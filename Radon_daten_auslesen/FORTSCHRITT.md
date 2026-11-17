@@ -28,6 +28,7 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Weitere Auswertungen ergänzt: Tag-Nacht-Vergleich je Raum, Wochentage und Kennzahlen zum Raumklima (z. B. Stunden mit CO₂ über 1000 ppm).
 - **17.11.2026** – Raumplan auf drei Stockwerke aufgeteilt (Keller, Erdgeschoss, 1. Stock), jeweils mit Mittelwert des Stockwerks.
 - **17.11.2026** – Erkennung von Abwesenheit ergänzt: Steigt CO₂ in Küche und Schlafzimmer mindestens 36 Stunden lang nicht an, war vermutlich niemand zu Hause. Gefunden wurde genau eine solche Phase, vom 31.07. bis 06.08.2026 (Urlaub). In dieser Zeit lag Radon im Mittel bei 283 Bq/m³ statt 44 Bq/m³.
+- **17.11.2026** – Feld „Wie schlimm ist Radon?“ ergänzt: Einordnung des Lungenkrebsrisikos nach den Zahlen der WHO, mit Regler, Nichtraucher/Raucher-Umschalter und einer Darstellung als 1000 Menschen. Für dieses Haus (52 Bq/m³) ergibt sich etwa +8 % Risiko gegenüber einem Haus ohne Radon.
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
 
@@ -35,7 +36,7 @@ Das Projekt wird mit Claude Code (Modell Claude Opus 5.5) als Tutor und Programm
 
 | Sitzung | Dauer | Antworten | Eingabe | Ausgabe | Cache geschrieben | Cache gelesen | Kosten (API-Preis) |
 |---|---|---|---|---|---|---|---|
-| 17.11.2026 15:24 | 48 min | 213 | 464 | 234.772 | 419.809 | 61.133.799 | 20,28 $ |
-| **Summe** | | 213 | 464 | 234.772 | 419.809 | 61.133.799 | **20,28 $** |
+| 17.11.2026 15:24 | 67 min | 225 | 492 | 251.313 | 439.937 | 66.931.983 | 21,93 $ |
+| **Summe** | | 225 | 492 | 251.313 | 439.937 | 66.931.983 | **21,93 $** |
 
-Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 16:12.
+Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 16:31.

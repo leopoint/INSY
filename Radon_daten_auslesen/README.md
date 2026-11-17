@@ -25,6 +25,7 @@ CSV oder PDF → Text → Tabelle → bereinigen → Stundenwerte → daten/rado
 
 - Zeitraum frei wählbar (gesamt, letzte 7/30 Tage, einzelne Monate, eigenes Datum)
 - Kennzahlen und automatisch formulierte „Wichtigste Erkenntnisse“
+- „Wie schlimm ist Radon?“: Einordnung des Risikos nach WHO mit Regler, Nichtraucher/Raucher und einem Bild aus 1000 Menschen
 - Raumplan: drei Grundrisse nebeneinander (Keller, Erdgeschoss, 1. Stock), jeder Raum in der Farbe seines Radonwerts (grün bis rot), mit Zeitregler zum Abspielen
 - Lüften: automatisch erkannt (schneller Abfall von CO₂ oder Radon) und überall eingetragen: Raumplan, Zeitverlauf, Fingerabdruck, Erkenntnisse, Ereignisse, Tagestabelle
 - Abwesenheit: Zeiten, in denen vermutlich niemand zu Hause war (CO₂ steigt tagelang nicht), als graues Band markiert

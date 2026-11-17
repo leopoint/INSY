@@ -124,6 +124,23 @@
   ol.erkenntnisse { margin: 0; padding-left: 20px; }
   ol.erkenntnisse li { margin-bottom: 8px; }
 
+  /* Risiko-Einordnung */
+  .risiko { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (max-width: 800px) { .risiko { grid-template-columns: 1fr; } }
+  .risiko input[type=range] { width: 100%; accent-color: var(--s1); margin-top: 6px; }
+  .risiko .label { color: var(--ink-2); font-size: 14px; }
+  .risiko .gross { font-size: 26px; font-weight: 650; letter-spacing: -0.01em; margin: 12px 0 4px; }
+  .risiko p { margin: 6px 0; color: var(--ink-2); }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--page); opacity: 1; }
+  #punkte { width: 100%; max-width: 520px; display: block; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .legend b { color: var(--ink); }
+  ul.fakten { margin: 16px 0 0; padding-left: 20px; color: var(--ink-2); }
+  ul.fakten li { margin-bottom: 6px; }
+  ul.fakten b { color: var(--ink); }
+
   details summary { cursor: pointer; font-weight: 600; }
   a { color: var(--s1); }
   .info p { margin: 0 0 10px; color: var(--ink-2); }
@@ -157,6 +174,35 @@
     <h2>Wichtigste Erkenntnisse</h2>
     <p class="hint">Automatisch aus den Messdaten im gewählten Zeitraum berechnet</p>
     <ol class="erkenntnisse" id="erkenntnisse"></ol>
+  </section>
+
+  <section class="card">
+    <h2>Wie schlimm ist Radon?</h2>
+    <p class="hint">Einordnung nach den Zahlen der Weltgesundheitsorganisation (WHO). Entscheidend ist der Mittelwert über viele Jahre, nicht einzelne Spitzen. Mit dem Regler kann man ausprobieren, was ein anderer Wert bedeuten würde.</p>
+    <div class="risiko">
+      <div>
+        <label for="risikowert" class="label">Radon im Mittel über viele Jahre: <b id="risikozahl"></b> Bq/m³</label>
+        <input type="range" id="risikowert" min="0" max="800" step="1">
+        <div class="chips" style="margin-top:8px">
+          <button type="button" class="chip" id="risikohaus">Wert dieses Hauses</button>
+          <button type="button" class="chip" data-wert="100">100 (WHO)</button>
+          <button type="button" class="chip" data-wert="300">300 (Österreich)</button>
+          <button type="button" class="chip" data-wert="600">600</button>
+        </div>
+        <div class="chips">
+          <button type="button" class="chip" id="nichtraucher" aria-pressed="true">Nichtraucher</button>
+          <button type="button" class="chip" id="raucher" aria-pressed="false">Raucher</button>
+        </div>
+        <div id="risikotext"></div>
+      </div>
+      <div>
+        <h3 id="punktetitel"></h3>
+        <canvas id="punkte" aria-label="1000 Menschen als Punkte"></canvas>
+        <div class="legend" id="punktelegende" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <ul class="fakten" id="risikofakten"></ul>
+    <p class="hint" style="margin:10px 0 0">Quellen: WHO Handbook on Indoor Radon (2009); Darby u. a., BMJ 2005 (Auswertung von 13 europäischen Studien). Die Zahlen gelten für Menschen, die ihr Leben lang bei diesem Mittelwert wohnen, und zeigen das Risiko, bis zum Alter von 75 Jahren an Lungenkrebs zu erkranken. Sie sind Durchschnittswerte für viele Menschen, keine Vorhersage für eine einzelne Person.</p>
   </section>
 
   <section class="card">
@@ -1207,6 +1253,84 @@ function lueftenZeichnen() {
     `<li><span class="when">${tagUhr(e.zeit)}</span><span><b>${e.ort}</b>: ${lueftHinweis(e)}</span></li>`).join("") || `<li><span class="when">–</span><span>keine Lüftung erkannt</span></li>`;
 }
 
+// =====================================================================
+// Wie schlimm ist Radon? (Einordnung nach WHO)
+// =====================================================================
+// WHO Handbook on Indoor Radon (2009), Tabelle nach Darby u. a. (2005): Wie viele von 1000 Menschen
+// bis zum Alter von 75 Jahren an Lungenkrebs erkranken, je nach lebenslangem Radon-Mittelwert.
+const WHO_RISIKO = {
+  stufen:      [0,   100,  200,  400,  800],
+  nichtraucher:[4.1, 4.7,  5.4,  6.7,  9.3],
+  raucher:     [101, 116,  130,  160,  216],     // 15–24 Zigaretten pro Tag
+};
+const PRO_100 = 0.16;          // +16 % Lungenkrebsrisiko je +100 Bq/m³ Dauerbelastung (WHO)
+let risikoRaucher = false;
+const risikoRegler = document.getElementById("risikowert");
+
+// Wert zwischen den Tabellenstufen geradlinig berechnen (über 800 mit der letzten Steigung weiter)
+function proTausend(c, liste) {
+  const s = WHO_RISIKO.stufen;
+  let i = 1; while (i < s.length - 1 && c > s[i]) i++;
+  return liste[i - 1] + (liste[i] - liste[i - 1]) * (c - s[i - 1]) / (s[i] - s[i - 1]);
+}
+function hausMittelIm() { const h = []; for (let k = A; k <= B; k++) { const v = hausWert(k); if (v != null) h.push(v); } return mittel(h); }
+
+function risikoZeichnen(nurAnzeige) {
+  if (!nurAnzeige) risikoRegler.value = Math.round(hausMittelIm());
+  const c = +risikoRegler.value, liste = risikoRaucher ? WHO_RISIKO.raucher : WHO_RISIKO.nichtraucher;
+  const basis = liste[0], mit = proTausend(c, liste), extra = mit - basis;
+  const wer = risikoRaucher ? "Raucher" : "Nichtraucher";
+  document.getElementById("risikozahl").textContent = zahl(c);
+  document.getElementById("nichtraucher").setAttribute("aria-pressed", !risikoRaucher);
+  document.getElementById("raucher").setAttribute("aria-pressed", risikoRaucher);
+  document.getElementById("risikotext").innerHTML = `
+    <div class="gross">+${zahl((mit / basis - 1) * 100)} % Lungenkrebsrisiko</div>
+    <p>gegenüber einem Haus ganz ohne Radon. ${badge(c)}</p>
+    <p>Von 1000 ${wer}n, die ihr ganzes Leben bei ${zahl(c)} Bq/m³ wohnen, erkranken bis 75 etwa <b>${zahl(mit, 1)}</b> an Lungenkrebs,
+       ohne Radon wären es ${zahl(basis, 1)}. Radon verursacht also etwa <b>${zahl(extra, 1)} zusätzliche Fälle pro 1000</b>
+       ${extra >= 1 ? `(ungefähr 1 von ${zahl(1000 / extra)})` : `(weniger als 1 von 1000)`}.</p>`;
+
+  // 1000 Punkte = 1000 Menschen: grau = gesund, dunkel = Lungenkrebs auch ohne Radon, rot = zusätzlich durch Radon
+  const cv = document.getElementById("punkte"), dpr = window.devicePixelRatio || 1;
+  const spalten = 50, zeilen = 20, W = cv.clientWidth, zelle = W / spalten, H = zelle * zeilen;
+  cv.style.height = H + "px"; cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+  const nBasis = Math.round(basis), nExtra = Math.round(mit) - nBasis;
+  for (let i = 0; i < 1000; i++) {
+    const x = (i % spalten + 0.5) * zelle, y = (Math.floor(i / spalten) + 0.5) * zelle;
+    ctx.beginPath(); ctx.arc(x, y, zelle * 0.36, 0, 7);
+    ctx.fillStyle = i < nBasis ? farbe("--ink-2") : i < nBasis + nExtra ? farbe("--bad") : farbe("--axis");
+    ctx.fill();
+  }
+  document.getElementById("punktetitel").textContent = `1000 ${wer} bei ${zahl(c)} Bq/m³`;
+  document.getElementById("punktelegende").innerHTML =
+    `<span><i style="background:var(--axis)"></i>kein Lungenkrebs</span>` +
+    `<span><i style="background:var(--ink-2)"></i>Lungenkrebs auch ohne Radon: <b>${zahl(basis, 1)}</b></span>` +
+    `<span><i style="background:var(--bad)"></i>zusätzlich durch Radon: <b>${zahl(extra, 1)}</b>${nExtra < 1 ? " (weniger als ein Punkt)" : ""}</span>`;
+
+  // Fakten zum Einordnen, mit Bezug zu diesem Haus
+  const hm = hausMittelIm(), fakten = [
+    `<b>Faustregel:</b> Jede Erhöhung des langjährigen Mittelwerts um <b>100 Bq/m³</b> erhöht das Lungenkrebsrisiko um etwa <b>16 %</b>. Von 100 auf 200 Bq/m³ ist also gleich schlimm wie von 0 auf 100.`,
+    `<b>Dieses Haus:</b> Im gewählten Zeitraum liegt das Haus im Mittel bei ${zahl(hm)} Bq/m³, das entspricht etwa <b>+${zahl((proTausend(hm, WHO_RISIKO.nichtraucher) / WHO_RISIKO.nichtraucher[0] - 1) * 100)} %</b> Risiko für Nichtraucher. Zum Vergleich: Weltweit liegt der Durchschnitt in Wohnungen bei etwa 40 Bq/m³ (UNSCEAR).`,
+    `<b>Rauchen ist viel gefährlicher:</b> Ein Raucher hat schon ohne Radon ein etwa 25-mal so hohes Lungenkrebsrisiko wie ein Nichtraucher. Radon wirkt bei Rauchern zusätzlich, deshalb verursacht dieselbe Radonmenge bei ihnen viel mehr Fälle (Raucher-Knopf ausprobieren).`,
+  ];
+  abwesendIm().forEach(a => {
+    const drin = [], sonst = [];
+    for (let k = A; k <= B; k++) { const h = hausWert(k); if (h != null) (zeitVon(k) >= a.von && zeitVon(k) < a.bis ? drin : sonst).push(h); }
+    if (drin.length && sonst.length) {
+      const plus = (mittel(drin) - mittel(sonst)) * (a.bis - a.von) / (365 * TAG);
+      fakten.push(`<b>Spitzen zählen wenig:</b> Die ${zahl((a.bis - a.von) / TAG, 1)} Tage Urlaub mit im Mittel ${zahl(mittel(drin))} Bq/m³ erhöhen das Jahresmittel nur um etwa <b>${zahl(plus, 1)} Bq/m³</b>, also das Risiko um rund ${zahl(plus / 100 * PRO_100 * 100, 1)} %. Wichtig ist, dass der Wert nicht dauerhaft hoch ist.`);
+    }
+  });
+  fakten.push(`<b>Bedeutung:</b> Laut WHO ist Radon nach dem Rauchen die zweithäufigste Ursache für Lungenkrebs. Regelmäßiges Lüften und das Abdichten von Kellerböden und Leitungsdurchführungen senken den Wert am stärksten.`);
+  document.getElementById("risikofakten").innerHTML = fakten.map(f => `<li>${f}</li>`).join("");
+}
+risikoRegler.oninput = () => risikoZeichnen(true);
+document.getElementById("risikohaus").onclick = () => risikoZeichnen(false);
+document.querySelectorAll(".risiko [data-wert]").forEach(b => b.onclick = () => { risikoRegler.value = b.dataset.wert; risikoZeichnen(true); });
+document.getElementById("nichtraucher").onclick = () => { risikoRaucher = false; risikoZeichnen(true); };
+document.getElementById("raucher").onclick = () => { risikoRaucher = true; risikoZeichnen(true); };
+
 function tabelleZeichnen() {
   const spalten = [...radon.map(r => [r.ort, r]), ["Außentemp. °C", wetter("Temperatur 2 m")]];
   const reihen = spalten.map(([, r]) => new Map(tagesMittel(r).map(p => [fISO.format(p.x), p.y])));
@@ -1223,9 +1347,9 @@ function tabelleZeichnen() {
 function allesZeichnen() {
   kachelnZeichnen(); skalaZeichnen(); planZeichnen(); vergleichZeichnen(); verlaufZeichnen();
   monateZeichnen(); stundenZeichnen(); tagNachtZeichnen(); wochentageZeichnen(); fingerabdruckZeichnen(); klimaZeichnen(); wetterZeichnen();
-  lueftenZeichnen(); korrelationZeichnen(); erkenntnisseZeichnen(); ereignisseZeichnen(); qualitaetZeichnen(); tabelleZeichnen();
+  lueftenZeichnen(); korrelationZeichnen(); erkenntnisseZeichnen(); risikoZeichnen(); ereignisseZeichnen(); qualitaetZeichnen(); tabelleZeichnen();
 }
-window.addEventListener("resize", () => fingerabdruckZeichnen());
+window.addEventListener("resize", () => { fingerabdruckZeichnen(); risikoZeichnen(true); });
 auswahl.value = "alles";
 zeitraumSetzen(DATUM[0], DATUM[ANZAHL - 1]);
 </script>
