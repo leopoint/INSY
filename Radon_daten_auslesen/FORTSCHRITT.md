@@ -19,6 +19,8 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Auslese-Skript erstellt. Es repariert die fehlerhafte Zeichenkodierung der PDF, erkennt einen Sensor-Neustart und entfernt die drei Anlaufwerte mit 0 Bq/m³ danach.
 - **17.11.2026** – Erste Version des Dashboards erstellt. Ergebnis für die Küche: Mittelwert 350 Bq/m³, Höchstwert 707 Bq/m³, 61 % der Messzeit über dem österreichischen Referenzwert von 300 Bq/m³.
 
+- **17.11.2026** – Raumplan ergänzt: Ein schematischer Grundriss zeigt jeden Raum in der Farbe seines Radonwerts, mit Zeitregler und den Wetterwerten draußen.
+
 ## KI-Nutzung: Token-Verbrauch und Kosten
 
 Das Projekt wird mit Claude Code (Modell Claude Opus 5.5) als Tutor und Programmierpartner umgesetzt. Die Werte stammen aus den lokalen Sitzungsprotokollen und werden mit `token_verbrauch.py` ausgewertet.

@@ -52,6 +52,7 @@ Das Dashboard berechnet alle Kennzahlen selbst aus `daten.js`. Mit einer neuen P
 | Bereich | Inhalt |
 |---|---|
 | Kennzahlen | Mittelwert mit Bewertung, Höchst- und Tiefstwert mit Uhrzeit, Anteil der Zeit über 300 Bq/m³, letzter Wert |
+| Raumplan | schematischer Grundriss eines quadratischen Hauses mit allen Räumen aus den Daten; jeder Raum ist nach seinem Radonwert eingefärbt (Farbskala grün → gelb → rot), Räume ohne Messwerte sind grau; ein Zeitregler zeigt den Wert zu jedem Zeitpunkt, daneben die Wetterwerte draußen |
 | Zeitverlauf | Radonkurve mit den Grenzen 100 Bq/m³ (WHO-Empfehlung) und 300 Bq/m³ (Referenzwert in Österreich), Sensor-Neustart markiert |
 | Verteilung | Anteil der Messzeit unter 100, zwischen 100 und 300 und ab 300 Bq/m³ |
 | Tagesverlauf | mittlerer Radonwert je Uhrzeit |

@@ -23,6 +23,7 @@ PDF → Text (pypdf) → Tabelle (CSV) → bereinigen → daten/radon_daten.csv
 
 ## Das zeigt das Dashboard
 
+- Raumplan: schematischer Grundriss des Hauses, jeder Raum in der Farbe seines Radonwerts (grün bis rot), mit Zeitregler zum Abspielen
 - Kennzahlen: Mittelwert mit Bewertung, Höchst- und Tiefstwert mit Uhrzeit, Anteil der Zeit über 300 Bq/m³, letzter Wert
 - Radonverlauf mit den Grenzen 100 Bq/m³ (WHO) und 300 Bq/m³ (Referenzwert Österreich) und markiertem Sensor-Neustart
 - Verteilung der Messzeit auf die Bereiche niedrig / erhöht / über Referenzwert

@@ -92,6 +92,27 @@
   .bar span { position: absolute; top: 0; bottom: 0; background: var(--s1); border-radius: 3px; }
   .bar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--axis); }
 
+  /* Raumplan */
+  .planbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 12px; }
+  .planbar select, .planbar button { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 8px;
+         border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); cursor: pointer; }
+  .planbar button:disabled, .planbar select:disabled { opacity: 0.5; cursor: default; }
+  .planbar input[type=range] { flex: 1; min-width: 180px; accent-color: var(--s1); }
+  .planbar .zeitpunkt { font-variant-numeric: tabular-nums; color: var(--ink-2); min-width: 120px; }
+  .planwrap { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 20px; align-items: start; }
+  @media (max-width: 800px) { .planwrap { grid-template-columns: 1fr; } }
+  #plan { width: 100%; height: auto; display: block; max-width: 620px; margin: 0 auto; }
+  #plan .raum { stroke: var(--ink); stroke-width: 3; }
+  #plan .raum.leer { fill: var(--surface-2); }
+  #plan .name { font: 600 15px system-ui, sans-serif; }
+  #plan .wert { font: 700 24px system-ui, sans-serif; }
+  #plan .klein { font: 12px system-ui, sans-serif; }
+  .skala { height: 14px; border-radius: 7px; margin: 6px 0 4px; }
+  .skalatext { position: relative; height: 16px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .skalatext span { position: absolute; }
+  .aussen .tile { margin-bottom: 10px; }
+  .aussen .tile .value { font-size: 22px; }
+
   details summary { cursor: pointer; font-weight: 600; }
   .tablewrap { overflow-x: auto; margin-top: 12px; }
   table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
@@ -117,6 +138,31 @@
   <section class="row" aria-label="Kennzahlen">
     <div class="chips" id="raeume"></div>
     <div class="tiles" id="kacheln"></div>
+  </section>
+
+  <section class="card">
+    <h2>Raumplan</h2>
+    <p class="hint">Schematischer Grundriss (die echte Raumaufteilung ist nicht bekannt). Die Farbe zeigt den Radonwert jedes Raums. Grau bedeutet: Für diesen Raum gibt es in den Daten keine Messwerte. Mit dem Regler kann man durch die Zeit gehen.</p>
+    <div class="planbar">
+      <select id="planmodus" aria-label="Was wird angezeigt">
+        <option value="zeit">Wert zum Zeitpunkt</option>
+        <option value="mittel">Mittelwert</option>
+        <option value="max">Höchstwert</option>
+      </select>
+      <button type="button" id="planplay">▶ Abspielen</button>
+      <input type="range" id="planzeit" min="0" max="0" value="0" aria-label="Zeitpunkt">
+      <span class="zeitpunkt" id="planzeittext"></span>
+    </div>
+    <div class="planwrap">
+      <svg id="plan" viewBox="0 0 640 645" role="img" aria-label="Grundriss mit Radonwerten"></svg>
+      <div>
+        <h2 style="font-size:14px">Farbskala Radon (Bq/m³)</h2>
+        <div class="skala" id="skala"></div>
+        <div class="skalatext" id="skalatext"></div>
+        <h2 style="font-size:14px;margin-top:18px">Draußen (Wetterstation)</h2>
+        <div class="aussen" id="aussen"></div>
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -543,8 +589,133 @@ function tabelleZeichnen() {
       const v = f(t); return `<td>${v == null ? "–" : zahl(v, st)}</td>`; }).join("")}</tr>`).join("");
 }
 
+// ---------- Raumplan ----------
+// Schematischer Grundriss: quadratisches Haus, Räume als Rechtecke (x, y, Breite, Höhe)
+const RAEUME = [
+  { ort: "Wohnzimmer",   x: 20,  y: 20,  b: 360, h: 270 },
+  { ort: "Küche",        x: 380, y: 20,  b: 240, h: 270 },
+  { ort: "Schlafzimmer", x: 20,  y: 290, b: 220, h: 190 },
+  { ort: "Büro",         x: 240, y: 290, b: 180, h: 190 },
+  { ort: "Werkstatt",    x: 420, y: 290, b: 200, h: 190 },
+  { ort: "Technikraum",  x: 20,  y: 480, b: 220, h: 140 },
+  { ort: "Flur",         x: 240, y: 480, b: 380, h: 140, kein: true },
+];
+// zweiter Sensor in der Küche (am Sockel), als Kreis in der Küche
+const SOCKEL = { ort: "Küche (Sockel)", x: 590, y: 258 };
+
+// Farbskala Grün → Gelb → Rot, Stützpunkte in Bq/m³
+const SKALA = [[0, "#1a9641"], [100, "#a6d96a"], [200, "#ffe066"], [300, "#fdae61"], [600, "#d7191c"]];
+function radonFarbe(w) {
+  for (let i = 1; i < SKALA.length; i++) {
+    const [w1, f1] = SKALA[i - 1], [w2, f2] = SKALA[i];
+    if (w <= w2) {
+      const t = Math.max(0, (w - w1) / (w2 - w1)), a = parseInt(f1.slice(1), 16), b = parseInt(f2.slice(1), 16);
+      const kanal = s => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t);
+      return `rgb(${kanal(16)},${kanal(8)},${kanal(0)})`;
+    }
+  }
+  return SKALA[SKALA.length - 1][1];
+}
+
+// alle Zeitpunkte, an denen irgendein Radonsensor gemessen hat
+const planZeiten = [...new Set(radon.flatMap(r => r.punkte.map(p => p[0])))].sort((a, b) => a - b);
+const regler = document.getElementById("planzeit");
+regler.max = planZeiten.length - 1;
+regler.value = planZeiten.length - 1;
+
+// Wert eines Raums für die gewählte Ansicht (beim Zeitpunkt: letzter Messwert, höchstens 30 min alt)
+function raumWert(ort, modus, ms) {
+  const r = radon.find(x => x.ort === ort);
+  if (!r) return null;
+  if (modus === "mittel") return mittel(r.punkte.map(p => p[1]));
+  if (modus === "max") return Math.max(...r.punkte.map(p => p[1]));
+  const vorher = r.punkte.filter(p => p[0] <= ms && ms - p[0] <= STUNDE / 2);
+  return vorher.length ? vorher[vorher.length - 1][1] : null;
+}
+
+function planZeichnen() {
+  const modus = document.getElementById("planmodus").value;
+  const ms = planZeiten[regler.value];
+  regler.disabled = modus !== "zeit";
+  document.getElementById("planplay").disabled = modus !== "zeit";
+  document.getElementById("planzeittext").textContent = modus === "zeit" ? `${tagUhr(ms)} Uhr` : "ganzer Zeitraum";
+
+  let svg = "";
+  RAEUME.forEach(r => {
+    const w = r.kein ? null : raumWert(r.ort, modus, ms);
+    const hatSensor = radon.some(x => x.ort === r.ort);
+    const text = w == null ? "var(--ink-2)" : "#0b0b0b";
+    const cx = r.x + r.b / 2, cy = r.y + r.h / 2;
+    svg += `<rect class="raum ${w == null ? "leer" : ""}" x="${r.x}" y="${r.y}" width="${r.b}" height="${r.h}"
+              ${w == null ? "" : `style="fill:${radonFarbe(w)}"`}>
+              <title>${r.ort}: ${w == null ? "keine Messwerte" : zahl(w) + " Bq/m³"}</title></rect>`;
+    svg += `<text class="name" x="${cx}" y="${cy - (r.kein ? 0 : 14)}" text-anchor="middle" fill="${text}">${r.ort}</text>`;
+    if (!r.kein) {
+      const zeile = w != null ? `${zahl(w)} Bq/m³` : hatSensor ? "kein Wert um diese Zeit" : "keine Messwerte";
+      svg += `<text class="${w != null ? "wert" : "klein"}" x="${cx}" y="${cy + 18}" text-anchor="middle" fill="${text}">${zeile}</text>`;
+      if (w != null) svg += `<text class="klein" x="${cx}" y="${cy + 40}" text-anchor="middle" fill="${text}">${stufe(w).text}</text>`;
+    }
+  });
+  // Sockel-Sensor als kleiner Kreis in der Küche (gestrichelt = keine Werte)
+  const ws = raumWert(SOCKEL.ort, modus, ms);
+  svg += `<circle cx="${SOCKEL.x}" cy="${SOCKEL.y}" r="11" stroke="#0b0b0b" stroke-width="2"
+            fill="${ws == null ? "transparent" : radonFarbe(ws)}" ${ws == null ? 'stroke-dasharray="3 3"' : ""}>
+            <title>${SOCKEL.ort}: ${ws == null ? "keine Messwerte" : zahl(ws) + " Bq/m³"}</title></circle>
+          <text class="klein" x="${SOCKEL.x - 17}" y="${SOCKEL.y + 4}" text-anchor="end" fill="#0b0b0b">Sensor Sockel</text>`;
+  // Außenwand und Eingang
+  svg += `<rect x="20" y="20" width="600" height="600" fill="none" stroke="var(--ink)" stroke-width="6"/>
+          <line x1="400" y1="620" x2="470" y2="620" stroke="var(--surface)" stroke-width="8"/>
+          <text class="klein" x="435" y="640" text-anchor="middle" fill="var(--ink-2)">Eingang</text>`;
+  document.getElementById("plan").innerHTML = svg;
+
+  // Wetter draußen: Wert der nächstgelegenen vollen Stunde
+  const aussen = [["Temperatur 2 m", "Außentemperatur", "°C"], ["Wind 10 m", "Wind", "km/h"], ["Luftdruck", "Luftdruck", "hPa"]];
+  document.getElementById("aussen").innerHTML = aussen.map(([name, titel, einheit]) => {
+    const r = wetter(name);
+    if (!r) return "";
+    let wert, zusatz;
+    if (modus === "zeit") {
+      const p = r.punkte.reduce((a, b) => Math.abs(b[0] - ms) < Math.abs(a[0] - ms) ? b : a);
+      wert = Math.abs(p[0] - ms) <= STUNDE ? p[1] : null;
+      zusatz = wert == null ? "kein Wert um diese Zeit" : `Stand ${uhr(p[0])} Uhr`;
+    } else {
+      const w = r.punkte.map(p => p[1]);
+      wert = modus === "mittel" ? mittel(w) : Math.max(...w);
+      zusatz = modus === "mittel" ? "Mittelwert" : "Höchstwert";
+    }
+    return `<div class="tile"><div class="label">${titel}</div>
+      <div class="value">${wert == null ? "–" : zahl(wert, 1)} <small>${einheit}</small></div>
+      <div class="note">${zusatz}</div></div>`;
+  }).join("");
+}
+
+function skalaZeichnen() {
+  const max = SKALA[SKALA.length - 1][0];
+  document.getElementById("skala").style.background =
+    `linear-gradient(to right, ${SKALA.map(([w, f]) => `${f} ${w / max * 100}%`).join(", ")})`;
+  // Beschriftung genau unter die passende Stelle der Skala setzen
+  document.getElementById("skalatext").innerHTML = [[0, "0", "none"], [100, "100", "-50%"], [300, "300", "-50%"], [600, "600+", "-100%"]]
+    .map(([w, t, v]) => `<span style="left:${w / max * 100}%;transform:translateX(${v === "none" ? "0" : v})">${t}</span>`).join("");
+}
+
+// Zeitregler automatisch durchlaufen lassen
+let abspielen = null;
+function stoppen() { clearInterval(abspielen); abspielen = null; document.getElementById("planplay").textContent = "▶ Abspielen"; }
+document.getElementById("planplay").onclick = () => {
+  if (abspielen) return stoppen();
+  if (+regler.value >= +regler.max) regler.value = 0;
+  document.getElementById("planplay").textContent = "⏸ Pause";
+  abspielen = setInterval(() => {
+    if (+regler.value >= +regler.max) return stoppen();
+    regler.value = +regler.value + 1;
+    planZeichnen();
+  }, 80);
+};
+regler.oninput = planZeichnen;
+document.getElementById("planmodus").onchange = planZeichnen;
+
 function allesZeichnen() {
-  raeumeZeichnen(); kachelnZeichnen(); verlaufZeichnen(); verteilungZeichnen();
+  raeumeZeichnen(); kachelnZeichnen(); skalaZeichnen(); planZeichnen(); verlaufZeichnen(); verteilungZeichnen();
   stundenZeichnen(); ereignisseZeichnen(); wetterZeichnen(); korrelationZeichnen();
 }
 
