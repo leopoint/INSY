@@ -536,7 +536,8 @@ function erkenntnisseZeichnen() {
            (sort[0].name === "Keller" ? "Am höchsten ist der Keller, das passt dazu, dass Radon aus dem Boden kommt."
             : `Am höchsten ist ${sort[0].name === "1. Stock" ? "der 1. Stock" : "das " + sort[0].name}. Radon kommt zwar aus dem Boden, verteilt sich aber im Haus, und in Räumen mit wenig Lüften sammelt es sich auch weiter oben.`) +
            // Hinweis, wenn ein Sensor erst später im Zeitraum zu messen begann (dann fehlen ihm z. B. die Wintermonate)
-           kz.filter(x => x.r.stat.von > zeitVon(A) + 7 * TAG).map(x => ` Achtung: ${x.r.ort} misst erst ab ${tag(x.r.stat.von)}, der Vergleich ist deshalb nur bedingt fair.`).join(""));
+           ((spaet => spaet.length ? ` Achtung: ${spaet.map(x => `${x.r.ort} misst erst ab ${tag(x.r.stat.von)}`).join(", ")}, der Vergleich ist deshalb nur bedingt fair.` : "")
+            (kz.filter(x => x.r.stat.von > zeitVon(A) + 30 * TAG))));
   }
   // Monate vergleichen
   const proMonat = new Map();
