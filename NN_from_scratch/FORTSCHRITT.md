@@ -29,6 +29,7 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **13.10.2026** – Ausführlicher [Arbeitsbericht](ARBEITSBERICHT.md) mit Erklärung aller Parts, Ergebnissen und Problemen angelegt.
 - **19.10.2026** – Entscheidung, Part 6 (ESP32) nicht umzusetzen. Alle Programme aus Part 1 bis 5 wurden erneut geprüft und liefern weiterhin korrekte Ergebnisse. Das Projekt ist damit abgeschlossen; der Arbeitsbericht enthält eine Zusammenfassung des gesamten Ablaufs.
 - **19.10.2026** – Das gesamte Projekt (Code, trainierte Modelle, Weboberfläche) liegt jetzt auf GitHub. Die Weboberfläche ist zusätzlich über GitHub Pages online erreichbar. Dort rechnet die Netz-Ansicht direkt im Browser, und die Programmläufe werden als Aufzeichnung eines echten Laufs abgespielt.
+- **17.11.2026** – Weboberfläche um einen grafischen Vergleich zwischen eigenem Netz und TensorFlow ergänzt (Reiter „TensorFlow“): Lernkurven beider Netze für XOR und den 7-Segment-Decoder sowie Balkendiagramme für Endfehler und Trainingszeit. Der Fehler des eigenen Netzes ist dafür auf denselben MSE umgerechnet wie bei TensorFlow.
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
 
