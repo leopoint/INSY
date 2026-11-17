@@ -127,6 +127,7 @@ Als Ergänzung zur Angabe gibt es eine lokale Weboberfläche (`http://localhost:
 
 - **Aufbau:** Pro Part gibt es einen Reiter mit kurzer Erklärung, Start-Buttons und einer Live-Ausgabe.
 - **Lernkurve:** Bei den Trainings wird die Lernkurve live aus der Programmausgabe gezeichnet.
+- **Grafischer Vergleich (Reiter „TensorFlow“):** Lernkurven des eigenen Netzes und des TensorFlow-Netzes für XOR und den 7-Segment-Decoder übereinander, dazu Balkendiagramme für Endfehler und Trainingszeit. Der Fehler des eigenen Netzes ist dafür auf denselben MSE umgerechnet.
 - **Reiter „Netz ansehen“:** Hier sieht man, wie eine gewählte Ziffer Schicht für Schicht durch das gespeicherte Netz läuft und welche Segmente aufleuchten.
 
 Der Server verwendet nur die Python-Standardbibliothek und NumPy. Er ist ausschließlich vom eigenen PC aus erreichbar und kann nur die fest eingetragenen Programme starten.
@@ -176,6 +177,7 @@ Der gesamte Ordner liegt auf GitHub (https://github.com/leopoint/INSY/tree/main/
 | 13.10.2026 | Code kommentiert, Weboberfläche erstellt, ungenutzte Dateien entfernt, Arbeitsbericht angelegt |
 | 19.10.2026 | Entscheidung gegen Part 6 (ESP32), Schlussprüfung aller Programme, Projekt abgeschlossen |
 | 19.10.2026 | Gesamtes Projekt auf GitHub hochgeladen, Weboberfläche als Online-Version über GitHub Pages |
+| 17.11.2026 | Grafischer Vergleich eigenes Netz vs. TensorFlow in der Weboberfläche ergänzt |
 
 ## 9. Zusammenfassung
 
