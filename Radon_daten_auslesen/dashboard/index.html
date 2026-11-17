@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radon-Dashboard</title>
+<style>
+  /* Farben als Variablen: hell und dunkel (je nach System-Einstellung oder Umschalter) */
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f0efec;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.12);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+    --good: #0ca30c; --warn: #eda100; --bad: #d03b3b;
+    --good-bg: rgba(12,163,12,0.10); --warn-bg: rgba(237,161,0,0.12); --bad-bg: rgba(208,59,59,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #262624;
+      --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.12);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+      --good: #0ca30c; --warn: #c98500; --bad: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #262624;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.12);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --good: #0ca30c; --warn: #c98500; --bad: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  .sub { color: var(--ink-2); margin: 4px 0 0; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  button.theme { background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+                 border-radius: 8px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; min-width: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 > .card { margin-bottom: 0; }
+  .row { margin-bottom: 16px; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* Kennzahlen-Kacheln */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tile .label { color: var(--ink-2); font-size: 13px; }
+  .tile .value { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .tile .value small { font-size: 14px; font-weight: 500; color: var(--ink-2); }
+  .tile .note { color: var(--muted); font-size: 12.5px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .b-good { background: var(--good-bg); color: var(--good); }
+  .b-warn { background: var(--warn-bg); color: var(--warn); }
+  .b-bad  { background: var(--bad-bg);  color: var(--bad); }
+
+  /* Raum-Auswahl */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .chip { border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); border-radius: 999px;
+          padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+  .chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .chartbox { position: relative; height: 320px; }
+  .chartbox.small { height: 190px; }
+
+  /* Verteilung als gestapelter Balken */
+  .stack { display: flex; height: 26px; border-radius: 6px; overflow: hidden; gap: 2px; margin: 8px 0 12px; }
+  .stack div { min-width: 2px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  ul.events { list-style: none; padding: 0; margin: 0; }
+  ul.events li { padding: 9px 0; border-top: 1px solid var(--border); display: grid; grid-template-columns: 120px 1fr; gap: 12px; }
+  ul.events li:first-child { border-top: 0; }
+  ul.events .when { color: var(--ink-2); font-variant-numeric: tabular-nums; font-size: 13.5px; }
+
+  .corr { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .corr .tile .value { font-size: 22px; }
+  .bar { height: 6px; background: var(--surface-2); border-radius: 3px; position: relative; margin: 8px 0 6px; }
+  .bar span { position: absolute; top: 0; bottom: 0; background: var(--s1); border-radius: 3px; }
+  .bar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--axis); }
+
+  details summary { cursor: pointer; font-weight: 600; }
+  .tablewrap { overflow-x: auto; margin-top: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; }
+  a { color: var(--s1); }
+  .info p { margin: 0 0 10px; color: var(--ink-2); }
+  .info p:last-child { margin-bottom: 0; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Radon-Dashboard</h1>
+      <p class="sub" id="untertitel"></p>
+    </div>
+    <button class="theme" id="theme" type="button">Hell/Dunkel</button>
+  </header>
+
+  <section class="row" aria-label="Kennzahlen">
+    <div class="chips" id="raeume"></div>
+    <div class="tiles" id="kacheln"></div>
+  </section>
+
+  <section class="card">
+    <h2>Radon im Zeitverlauf</h2>
+    <p class="hint">Gestrichelte Linien: 100 Bq/m³ (Empfehlung der WHO) und 300 Bq/m³ (Referenzwert in Österreich). Mit der Maus über die Kurve fahren zeigt die genauen Werte.</p>
+    <div class="chartbox"><canvas id="verlauf"></canvas></div>
+  </section>
+
+  <div class="grid2 row">
+    <section class="card">
+      <h2>Wie lange war die Belastung wie hoch?</h2>
+      <p class="hint">Anteil der Messzeit in drei Bereichen</p>
+      <div class="stack" id="stack"></div>
+      <div class="legend" id="stacklegend"></div>
+    </section>
+    <section class="card">
+      <h2>Tagesverlauf</h2>
+      <p class="hint">Mittlerer Radonwert je Uhrzeit (Wiener Zeit). Lücken: zu dieser Uhrzeit gibt es keine Messung.</p>
+      <div class="chartbox small"><canvas id="stunden"></canvas></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Auffälligkeiten</h2>
+    <p class="hint">Automatisch aus den Messdaten erkannt</p>
+    <ul class="events" id="ereignisse"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Radon und Wetter</h2>
+    <p class="hint">Jede Grafik hat dieselbe Zeitachse wie der Radonverlauf. Die Wetterdaten gibt es einmal pro Stunde.</p>
+    <div class="grid2">
+      <div><h2 style="font-size:14px">Außentemperatur (°C)</h2><div class="chartbox small"><canvas id="w_temp"></canvas></div></div>
+      <div><h2 style="font-size:14px">Bodentemperatur (°C)</h2><div class="chartbox small"><canvas id="w_boden"></canvas></div></div>
+      <div><h2 style="font-size:14px">Luftdruck (hPa)</h2><div class="chartbox small"><canvas id="w_druck"></canvas></div></div>
+      <div><h2 style="font-size:14px">Wind in 10 m Höhe (km/h)</h2><div class="chartbox small"><canvas id="w_wind"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Hängt Radon mit dem Wetter zusammen?</h2>
+    <p class="hint" id="korrhint"></p>
+    <div class="corr" id="korrelation"></div>
+  </section>
+
+  <section class="card info">
+    <h2>Kurz erklärt</h2>
+    <p><b>Radon</b> ist ein radioaktives Edelgas. Es entsteht im Boden, wenn Uran zerfällt, und kann durch Risse und undichte Stellen ins Haus gelangen. Man sieht, riecht und schmeckt es nicht. Wer lange viel Radon einatmet, hat ein höheres Risiko für Lungenkrebs.</p>
+    <p><b>Bq/m³</b> (Becquerel pro Kubikmeter) gibt an, wie viele Atomkerne pro Sekunde in einem Kubikmeter Luft zerfallen. 300 Bq/m³ bedeutet also 300 Zerfälle pro Sekunde in einem Kubikmeter.</p>
+    <p><b>Grenzen:</b> In Österreich gilt für Aufenthaltsräume ein Referenzwert von 300 Bq/m³ im Jahresmittel. Die WHO empfiehlt, möglichst unter 100 Bq/m³ zu bleiben. Einzelne Spitzen über 300 sind nicht automatisch gefährlich, entscheidend ist der Durchschnitt über lange Zeit.</p>
+    <p><b>Warum schwankt der Wert?</b> In geschlossenen Räumen sammelt sich Radon an, vor allem nachts, wenn nicht gelüftet wird. Lüften senkt den Wert schnell. Auch Temperaturunterschiede zwischen innen und außen, Luftdruck und Wind beeinflussen, wie viel Bodenluft ins Haus gesaugt wird.</p>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Messwerte als Tabelle (stündlich zusammengefasst)</summary>
+      <p class="hint" style="margin-top:8px">Alle Rohdaten: <a href="../daten/radon_daten.csv" download>radon_daten.csv</a></p>
+      <div class="tablewrap"><table id="tabelle"></table></div>
+    </details>
+  </section>
+
+  <footer id="fuss"></footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="daten.js"></script>
+<script>
+// ---------- Grundeinstellungen ----------
+const WHO = 100, REFERENZ = 300;           // Bq/m³
+const TZ = "Europe/Vienna";
+const STUNDE = 3600 * 1000;
+
+// Hell/Dunkel umschalten (Wahl wird im Browser gemerkt)
+const root = document.documentElement;
+try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+document.getElementById("theme").onclick = () => {
+  const dunkel = getComputedStyle(root).colorScheme.includes("dark");
+  root.dataset.theme = dunkel ? "light" : "dark";
+  try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+  allesZeichnen();
+};
+const farbe = name => getComputedStyle(root).getPropertyValue(name).trim();
+
+// ---------- Hilfsfunktionen ----------
+const zahl = (x, st = 0) => x.toLocaleString("de-AT", { minimumFractionDigits: st, maximumFractionDigits: st });
+const zeit = (ms, opt) => new Date(ms).toLocaleString("de-AT", { timeZone: TZ, ...opt });
+const uhr = ms => zeit(ms, { hour: "2-digit", minute: "2-digit" });
+const tagUhr = ms => zeit(ms, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const stundenFormat = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "numeric", hourCycle: "h23" });
+const stundeVon = ms => parseInt(stundenFormat.format(ms), 10) % 24;
+// Achsenbeschriftung an vollen Stunden (alle 3 Stunden), damit die Uhrzeiten "rund" sind
+const volleStunden = achse => {
+  const t = [];
+  for (let ms = Math.ceil(achse.min / STUNDE) * STUNDE; ms <= achse.max; ms += STUNDE)
+    if (stundeVon(ms) % 3 === 0) t.push({ value: ms });
+  achse.ticks = t;
+};
+const mittel = a => a.reduce((s, x) => s + x, 0) / a.length;
+
+function stufe(wert) {        // Bewertung eines Radonwerts
+  if (wert < WHO) return { text: "niedrig", cls: "b-good", farbe: "--good" };
+  if (wert < REFERENZ) return { text: "erhöht", cls: "b-warn", farbe: "--warn" };
+  return { text: "über Referenzwert", cls: "b-bad", farbe: "--bad" };
+}
+
+// Pearson-Korrelation: +1 = steigen gemeinsam, -1 = einer steigt, der andere fällt, 0 = kein Zusammenhang
+function korrelation(xs, ys) {
+  const mx = mittel(xs), my = mittel(ys);
+  let sxy = 0, sxx = 0, syy = 0;
+  xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; syy += (ys[i] - my) ** 2; });
+  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
+}
+
+// Radon-Mittelwert rund um einen Zeitpunkt (±30 min), damit man ihn mit den Stunden-Wetterdaten vergleichen kann
+function radonUm(punkte, ms) {
+  const w = punkte.filter(p => Math.abs(p[0] - ms) <= STUNDE / 2).map(p => p[1]);
+  return w.length ? mittel(w) : null;
+}
+
+// ---------- Daten vorbereiten ----------
+// Umlaute für die Anzeige (in den Daten steht z. B. "Kueche")
+const NAMEN = { Kueche: "Küche", Buero: "Büro", "Kueche - Sockel": "Küche (Sockel)" };
+DATEN.reihen.forEach(r => r.ort = NAMEN[r.ort] || r.ort);
+DATEN.neustarts.forEach(n => n.ort = NAMEN[n.ort] || n.ort);
+const radon = DATEN.reihen.filter(r => r.groesse === "Radon");
+const wetter = name => DATEN.reihen.find(r => r.ort === "Wetter" && r.groesse.startsWith(name));
+const alleZeiten = DATEN.reihen.flatMap(r => r.punkte.map(p => p[0]));
+const START = Math.min(...alleZeiten), ENDE = Math.max(...alleZeiten);
+let auswahl = radon.map(r => r.ort);           // welche Räume angezeigt werden
+
+document.getElementById("untertitel").textContent =
+  `Messzeitraum ${tagUhr(START)} bis ${tagUhr(ENDE)} (${zahl((ENDE - START) / STUNDE, 1)} Stunden) · ` +
+  `${radon.length} Radonsensor${radon.length === 1 ? "" : "en"} · ${DATEN.zeilen} Messzeilen`;
+document.getElementById("fuss").textContent =
+  `Quelle: ${DATEN.quelle}, ausgelesen mit auslesen.py am ${DATEN.erzeugt}. ` +
+  `${DATEN.entfernt} Anlaufwerte nach einem Sensor-Neustart wurden entfernt. Zeiten in Wiener Zeit.`;
+
+// ---------- Kennzahlen ----------
+function kennzahlen(r) {
+  const p = r.punkte, w = p.map(x => x[1]);
+  const max = p.reduce((a, b) => b[1] > a[1] ? b : a), min = p.reduce((a, b) => b[1] < a[1] ? b : a);
+  const ueber = w.filter(x => x >= REFERENZ).length / w.length;
+  return { aktuell: p[p.length - 1], mittel: mittel(w), max, min, ueber,
+           dauer: (p[p.length - 1][0] - p[0][0]) / STUNDE };
+}
+
+function kachelnZeichnen() {
+  const box = document.getElementById("kacheln");
+  box.innerHTML = "";
+  radon.filter(r => auswahl.includes(r.ort)).forEach(r => {
+    const k = kennzahlen(r), s = stufe(k.mittel);
+    const name = radon.length > 1 ? ` · ${r.ort}` : "";
+    box.insertAdjacentHTML("beforeend", `
+      <div class="tile"><div class="label">Mittelwert${name}</div>
+        <div class="value">${zahl(k.mittel)} <small>Bq/m³</small></div>
+        <span class="badge ${s.cls}">${s.text}</span></div>
+      <div class="tile"><div class="label">Höchstwert${name}</div>
+        <div class="value">${zahl(k.max[1])} <small>Bq/m³</small></div>
+        <div class="note">am ${tagUhr(k.max[0])} Uhr</div></div>
+      <div class="tile"><div class="label">Tiefstwert${name}</div>
+        <div class="value">${zahl(k.min[1])} <small>Bq/m³</small></div>
+        <div class="note">am ${tagUhr(k.min[0])} Uhr</div></div>
+      <div class="tile"><div class="label">Zeit über 300 Bq/m³${name}</div>
+        <div class="value">${zahl(k.ueber * 100)} <small>%</small></div>
+        <div class="note">etwa ${zahl(k.ueber * k.dauer, 1)} von ${zahl(k.dauer, 1)} Stunden</div></div>
+      <div class="tile"><div class="label">Letzter Wert${name}</div>
+        <div class="value">${zahl(k.aktuell[1])} <small>Bq/m³</small></div>
+        <div class="note">${tagUhr(k.aktuell[0])} Uhr</div></div>`);
+  });
+}
+
+function raeumeZeichnen() {
+  const box = document.getElementById("raeume");
+  if (radon.length < 2) { box.style.display = "none"; return; }
+  box.innerHTML = "";
+  radon.forEach((r, i) => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", auswahl.includes(r.ort));
+    b.innerHTML = `<i style="background:var(--s${i % 4 + 1})"></i>${r.ort}`;
+    b.onclick = () => {
+      auswahl = auswahl.includes(r.ort) ? auswahl.filter(o => o !== r.ort) : [...auswahl, r.ort];
+      if (!auswahl.length) auswahl = [r.ort];
+      allesZeichnen();
+    };
+    box.appendChild(b);
+  });
+}
+
+// ---------- Diagramme (Chart.js) ----------
+const diagramme = {};
+
+// Zeichnet waagrechte Grenzlinien und senkrechte Markierungen (Sensor-Neustart) ins Diagramm
+const linienPlugin = {
+  id: "linien",
+  afterDraw(chart, _, opt) {
+    const { ctx, chartArea: a, scales } = chart;
+    ctx.save();
+    ctx.font = "12px system-ui, sans-serif";
+    (opt.waagrecht || []).forEach(l => {
+      const y = scales.y.getPixelForValue(l.wert);
+      if (y < a.top || y > a.bottom) return;
+      ctx.strokeStyle = l.farbe; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(a.left, y); ctx.lineTo(a.right, y); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle = farbe("--ink-2"); ctx.textAlign = "right";
+      ctx.fillText(l.text, a.right - 4, y - 5);
+    });
+    (opt.senkrecht || []).forEach(l => {
+      const x = scales.x.getPixelForValue(l.wert);
+      if (x < a.left || x > a.right) return;
+      ctx.strokeStyle = farbe("--muted"); ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke();
+      ctx.setLineDash([]); ctx.fillStyle = farbe("--muted"); ctx.textAlign = "left";
+      ctx.fillText(l.text, x + 4, a.top + 12);
+    });
+    ctx.restore();
+  }
+};
+
+// Senkrechte Hilfslinie an der Mausposition
+const fadenkreuz = {
+  id: "fadenkreuz",
+  afterDraw(chart) {
+    const t = chart.tooltip;
+    if (!t || !t.getActiveElements().length) return;
+    const x = t.getActiveElements()[0].element.x, a = chart.chartArea, ctx = chart.ctx;
+    ctx.save(); ctx.strokeStyle = farbe("--axis"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke(); ctx.restore();
+  }
+};
+
+function grundOptionen(einheit, zeitachse = true) {
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: farbe("--surface"), titleColor: farbe("--ink"), bodyColor: farbe("--ink-2"),
+        borderColor: farbe("--border"), borderWidth: 1, padding: 10, boxPadding: 4,
+        callbacks: {
+          title: items => zeitachse ? tagUhr(items[0].parsed.x) + " Uhr" : items[0].label,
+          label: item => ` ${item.dataset.label}: ${zahl(item.parsed.y, einheit === "Bq/m³" ? 0 : 1)} ${einheit}`,
+        },
+      },
+    },
+    scales: {
+      x: zeitachse ? {
+        type: "linear", min: START, max: ENDE, afterBuildTicks: volleStunden,
+        ticks: { color: farbe("--muted"), callback: v => uhr(v), maxRotation: 0, autoSkip: true },
+        grid: { color: farbe("--grid") }, border: { color: farbe("--axis") },
+      } : { ticks: { color: farbe("--muted") }, grid: { display: false }, border: { color: farbe("--axis") } },
+      // feste Breite der y-Achse, damit die Zeitachsen aller Diagramme genau untereinander liegen
+      y: { afterFit: a => { a.width = 44; }, ticks: { color: farbe("--muted") }, grid: { color: farbe("--grid") }, border: { display: false } },
+    },
+  };
+}
+
+function neu(id, config) {
+  if (diagramme[id]) diagramme[id].destroy();
+  diagramme[id] = new Chart(document.getElementById(id), config);
+}
+
+function linie(label, punkte, f, extra = {}) {
+  return { label, data: punkte.map(p => ({ x: p[0], y: p[1] })), borderColor: f, backgroundColor: f,
+           borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, tension: 0.25, ...extra };
+}
+
+function verlaufZeichnen() {
+  const reihen = radon.filter(r => auswahl.includes(r.ort));
+  const opt = grundOptionen("Bq/m³");
+  opt.scales.y.min = 0;
+  opt.scales.y.suggestedMax = REFERENZ * 1.2;
+  opt.plugins.linien = {
+    waagrecht: [{ wert: WHO, text: "WHO 100", farbe: farbe("--good") },
+                { wert: REFERENZ, text: "Referenzwert 300", farbe: farbe("--bad") }],
+    senkrecht: DATEN.neustarts.filter(n => auswahl.includes(n.ort))
+                 .map(n => ({ wert: n.zeit, text: "Sensor-Neustart" })),
+  };
+  neu("verlauf", {
+    type: "line",
+    data: { datasets: reihen.map(r => linie(`Radon ${r.ort}`, r.punkte, farbe(`--s${radon.indexOf(r) % 4 + 1}`),
+                                            { fill: { target: "origin" }, backgroundColor: farbe(`--s${radon.indexOf(r) % 4 + 1}`) + "1f" })) },
+    options: opt, plugins: [linienPlugin, fadenkreuz],
+  });
+}
+
+function stundenZeichnen() {
+  // pro Uhrzeit (0–23 Uhr) alle Radonwerte der gewählten Räume mitteln
+  const proStunde = Array.from({ length: 24 }, () => []);
+  radon.filter(r => auswahl.includes(r.ort)).forEach(r => r.punkte.forEach(p => proStunde[stundeVon(p[0])].push(p[1])));
+  const labels = [], werte = [], farben = [];
+  proStunde.forEach((w, h) => {
+    labels.push(`${String(h).padStart(2, "0")} Uhr`);
+    const m = w.length ? mittel(w) : null;
+    werte.push(m);
+    farben.push(m == null ? "transparent" : farbe(stufe(m).farbe));
+  });
+  const opt = grundOptionen("Bq/m³", false);
+  opt.interaction = { mode: "index", intersect: false };
+  opt.scales.y.min = 0;
+  opt.scales.x.ticks.maxRotation = 0;
+  opt.scales.x.ticks.callback = (v, i) => i % 3 === 0 ? labels[i].slice(0, 2) : "";
+  neu("stunden", {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Mittelwert", data: werte, backgroundColor: farben,
+                                 borderRadius: 4, borderSkipped: "bottom", barPercentage: 0.85, categoryPercentage: 0.95 }] },
+    options: opt,
+  });
+}
+
+function verteilungZeichnen() {
+  const w = radon.filter(r => auswahl.includes(r.ort)).flatMap(r => r.punkte.map(p => p[1]));
+  const klassen = [
+    { text: "unter 100 (niedrig)", farbe: "--good", n: w.filter(x => x < WHO).length },
+    { text: "100 bis 300 (erhöht)", farbe: "--warn", n: w.filter(x => x >= WHO && x < REFERENZ).length },
+    { text: "ab 300 (über Referenzwert)", farbe: "--bad", n: w.filter(x => x >= REFERENZ).length },
+  ];
+  document.getElementById("stack").innerHTML = klassen.filter(k => k.n)
+    .map(k => `<div style="flex:${k.n};background:var(${k.farbe})" title="${k.text}: ${zahl(k.n / w.length * 100)} %"></div>`).join("");
+  document.getElementById("stacklegend").innerHTML = klassen
+    .map(k => `<span><i style="background:var(${k.farbe})"></i>${k.text}: <b>${zahl(k.n / w.length * 100)} %</b></span>`).join("");
+}
+
+function wetterZeichnen() {
+  const einzel = (id, name, f, einheit) => {
+    const r = wetter(name);
+    if (!r) return;
+    const opt = grundOptionen(einheit);
+    neu(id, { type: "line", data: { datasets: [linie(name, r.punkte, farbe(f), { pointRadius: 2.5 })] },
+              options: opt, plugins: [fadenkreuz] });
+  };
+  einzel("w_temp", "Temperatur 2 m", "--s2", "°C");
+  einzel("w_druck", "Luftdruck", "--s1", "hPa");
+  einzel("w_wind", "Wind 10 m", "--s3", "km/h");
+  const tiefen = ["Bodentemperatur 0 cm", "Bodentemperatur 6 cm", "Bodentemperatur 54 cm"];
+  const opt = grundOptionen("°C");
+  opt.plugins.legend = { display: true, position: "top", align: "start",
+                         labels: { color: farbe("--ink-2"), boxWidth: 10, boxHeight: 10, font: { size: 12 } } };
+  neu("w_boden", { type: "line",
+    data: { datasets: tiefen.map((t, i) => wetter(t) && linie(t.replace("Bodentemperatur ", "in "), wetter(t).punkte,
+                                                               farbe(["--s4", "--s2", "--s1"][i]), { pointRadius: 2.5 })).filter(Boolean) },
+    options: opt, plugins: [fadenkreuz] });
+}
+
+function korrelationZeichnen() {
+  const r = radon.filter(x => auswahl.includes(x.ort))[0];
+  const groessen = [["Temperatur 2 m", "Außentemperatur", "wärmer draußen"], ["Luftdruck", "Luftdruck", "höherer Luftdruck"],
+                    ["Wind 10 m", "Wind", "mehr Wind"], ["Bodentemperatur 0 cm", "Bodentemperatur (Oberfläche)", "wärmerer Boden"]];
+  let paare = 0;
+  document.getElementById("korrelation").innerHTML = groessen.map(([name, titel, mehr]) => {
+    const w = wetter(name);
+    if (!w) return "";
+    const xs = [], ys = [];
+    w.punkte.forEach(p => { const rad = radonUm(r.punkte, p[0]); if (rad != null) { xs.push(p[1]); ys.push(rad); } });
+    paare = xs.length;
+    const k = korrelation(xs, ys), betrag = Math.abs(k);
+    const staerke = betrag >= 0.7 ? "starker" : betrag >= 0.4 ? "mittlerer" : betrag >= 0.2 ? "schwacher" : "kaum ein";
+    const richtung = betrag < 0.2 ? "" : k > 0 ? `: ${mehr} → eher mehr Radon` : `: ${mehr} → eher weniger Radon`;
+    const links = k < 0 ? 50 + k * 50 : 50, breite = Math.abs(k) * 50;
+    return `<div class="tile"><div class="label">${titel}</div>
+      <div class="value">r = ${zahl(k, 2)}</div>
+      <div class="bar"><span style="left:${links}%;width:${breite}%"></span></div>
+      <div class="note">${staerke} Zusammenhang${richtung}</div></div>`;
+  }).join("");
+  document.getElementById("korrhint").textContent =
+    `Korrelation r zwischen jedem Wetterwert und dem Radonwert ${r.ort} zur selben Stunde (${paare} Stundenpaare). ` +
+    `r = +1: steigen immer gemeinsam, r = −1: genau gegenläufig, r = 0: kein Zusammenhang. ` +
+    `Achtung: Bei so wenigen Stunden ist das nur ein Hinweis, kein Beweis. Ein Zusammenhang heißt auch nicht, dass das eine das andere verursacht.`;
+}
+
+function ereignisseZeichnen() {
+  const liste = [];
+  radon.filter(r => auswahl.includes(r.ort)).forEach(r => {
+    const k = kennzahlen(r), p = r.punkte;
+    liste.push([k.max[0], `Höchstwert ${r.ort}: <b>${zahl(k.max[1])} Bq/m³</b>`]);
+    // stärkste Änderung innerhalb einer Stunde suchen (deutet auf Lüften bzw. Ansammeln hin)
+    let fall = null, anstieg = null;
+    p.forEach((a, i) => {
+      const b = p.filter(q => q[0] > a[0] && q[0] - a[0] <= STUNDE).pop();
+      // Zeiträume mit Sensor-Neustart nicht vergleichen, dort sind die Werte nicht durchgehend
+      if (!b || DATEN.neustarts.some(n => n.ort === r.ort && n.zeit > a[0] && n.zeit <= b[0])) return;
+      const d = b[1] - a[1];
+      if (!fall || d < fall.d) fall = { d, a, b };
+      if (!anstieg || d > anstieg.d) anstieg = { d, a, b };
+    });
+    if (fall && fall.d < 0)
+      liste.push([fall.a[0], `Stärkster Abfall ${r.ort}: von ${zahl(fall.a[1])} auf ${zahl(fall.b[1])} Bq/m³ bis ${uhr(fall.b[0])} Uhr. ` +
+                             `So ein schneller Rückgang spricht meist für Lüften.`]);
+    if (anstieg && anstieg.d > 0)
+      liste.push([anstieg.a[0], `Stärkster Anstieg ${r.ort}: von ${zahl(anstieg.a[1])} auf ${zahl(anstieg.b[1])} Bq/m³ bis ${uhr(anstieg.b[0])} Uhr.`]);
+    // längste Phase am Stück über dem Referenzwert
+    let laengste = null, beginn = null;
+    p.forEach((q, i) => {
+      if (q[1] >= REFERENZ && beginn == null) beginn = q[0];
+      const ende = q[1] < REFERENZ || i === p.length - 1;
+      if (ende && beginn != null) {
+        const bis = q[1] < REFERENZ ? p[i - 1][0] : q[0];
+        if (!laengste || bis - beginn > laengste.bis - laengste.von) laengste = { von: beginn, bis };
+        beginn = null;
+      }
+    });
+    if (laengste)
+      liste.push([laengste.von, `Längste Phase über 300 Bq/m³ ${r.ort}: <b>${zahl((laengste.bis - laengste.von) / STUNDE, 1)} Stunden</b> ` +
+                                `(${tagUhr(laengste.von)} bis ${uhr(laengste.bis)} Uhr)`]);
+  });
+  DATEN.neustarts.filter(n => auswahl.includes(n.ort)).forEach(n =>
+    liste.push([n.zeit, `Sensor ${n.ort} neu gestartet. Die ersten Werte danach (0 Bq/m³) sind keine echten Messungen und wurden weggelassen.`]));
+  liste.sort((a, b) => a[0] - b[0]);
+  document.getElementById("ereignisse").innerHTML =
+    liste.map(([t, text]) => `<li><span class="when">${tagUhr(t)} Uhr</span><span>${text}</span></li>`).join("");
+}
+
+function tabelleZeichnen() {
+  // eine Zeile pro Stunde: Radon-Mittel je Raum + Wetterwerte dieser Stunde
+  const spalten = [...radon.map(r => [`Radon ${r.ort} (Bq/m³)`, ms => radonUm(r.punkte, ms), 0]),
+                   ...DATEN.reihen.filter(r => r.ort === "Wetter").map(r =>
+                     [`${r.groesse} (${r.einheit})`, ms => (r.punkte.find(p => p[0] === ms) || [])[1], 1])];
+  const stunden = [];
+  for (let t = Math.ceil(START / STUNDE) * STUNDE; t <= ENDE; t += STUNDE) stunden.push(t);
+  document.getElementById("tabelle").innerHTML =
+    `<tr><th>Zeit</th>${spalten.map(s => `<th>${s[0]}</th>`).join("")}</tr>` +
+    stunden.map(t => `<tr><td>${tagUhr(t)}</td>${spalten.map(([, f, st]) => {
+      const v = f(t); return `<td>${v == null ? "–" : zahl(v, st)}</td>`; }).join("")}</tr>`).join("");
+}
+
+function allesZeichnen() {
+  raeumeZeichnen(); kachelnZeichnen(); verlaufZeichnen(); verteilungZeichnen();
+  stundenZeichnen(); ereignisseZeichnen(); wetterZeichnen(); korrelationZeichnen();
+}
+
+allesZeichnen();
+tabelleZeichnen();
+</script>
+</body>
+</html>
