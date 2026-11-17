@@ -35,7 +35,7 @@ Das Projekt wird mit Claude Code (Modell Claude Opus 5.5) als Tutor und Programm
 
 | Sitzung | Dauer | Antworten | Eingabe | Ausgabe | Cache geschrieben | Cache gelesen | Kosten (API-Preis) |
 |---|---|---|---|---|---|---|---|
-| 17.11.2026 15:24 | 44 min | 192 | 418 | 216.242 | 390.463 | 51.540.109 | 17,76 $ |
-| **Summe** | | 192 | 418 | 216.242 | 390.463 | 51.540.109 | **17,76 $** |
+| 17.11.2026 15:24 | 48 min | 213 | 464 | 234.772 | 419.809 | 61.133.799 | 20,28 $ |
+| **Summe** | | 213 | 464 | 234.772 | 419.809 | 61.133.799 | **20,28 $** |
 
-Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 16:08.
+Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 16:12.
