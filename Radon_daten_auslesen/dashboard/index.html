@@ -187,7 +187,7 @@
 
   <section class="card">
     <h2>Lüften</h2>
-    <p class="hint">Automatisch erkannt: Beim Lüften kommt frische Außenluft herein, deshalb fällt CO₂ schnell (mindestens 150 ppm in 30 Minuten, nur Küche und Schlafzimmer haben CO₂-Sensoren) oder Radon schnell (um mindestens 60 Bq/m³ auf höchstens 65 % innerhalb einer Stunde). In Räumen ohne CO₂-Sensor wird Lüften nur erkannt, wenn Radon vorher hoch war. CO₂ wird erst ab <span id="co2start"></span> gemessen, davor ist die Erkennung lückenhaft.</p>
+    <p class="hint">Automatisch erkannt: Beim Lüften kommt frische Außenluft herein, deshalb fällt CO₂ schnell (mindestens 150 ppm in 30 Minuten, nur Küche und Schlafzimmer haben CO₂-Sensoren) oder Radon schnell (um mindestens 60 Bq/m³ auf höchstens 65 % innerhalb einer Stunde). In Räumen ohne CO₂-Sensor wird Lüften nur erkannt, wenn Radon vorher hoch war. CO₂ wird erst ab <span id="co2start"></span> gemessen, davor ist die Erkennung lückenhaft. Radon-Abfälle, während vermutlich niemand zu Hause war, zählen nicht als Lüften.</p>
     <div class="tiles" id="lueftkacheln"></div>
     <div class="grid2" style="margin-top:16px">
       <div><h3>Wann wird gelüftet? (Anzahl je Uhrzeit)</h3><div class="chartbox mid"><canvas id="lueftstunden"></canvas></div></div>
@@ -394,8 +394,28 @@ radon.forEach((r, i) => r.farbe = `--s${i % 7 + 1}`);
 const reihe = (ort, groesse) => DATEN.reihen.find(r => r.ort === ort && r.groesse.startsWith(groesse));
 const wetter = groesse => reihe("Wetter", groesse);
 
+// Vermutlich niemand zu Hause: Wenn Menschen im Haus sind, steigt CO₂ immer wieder an (Atmen).
+// Steigt CO₂ in Küche UND Schlafzimmer mindestens 36 Stunden lang in keiner Stunde um mehr als 25 ppm,
+// war vermutlich niemand da (z. B. Urlaub). Stunden ohne CO₂-Werte zählen nicht als Abwesenheit.
+const ABWESEND = (() => {
+  const k = reihe("Küche", "CO"), s = reihe("Schlafzimmer", "CO"), zeiten = [];
+  if (!k || !s) return zeiten;
+  let start = null;
+  for (let i = 1; i <= ANZAHL; i++) {
+    const da = i < ANZAHL && [k.werte[i], k.werte[i - 1], s.werte[i], s.werte[i - 1]].every(v => v != null);
+    const ruhig = da && k.werte[i] - k.werte[i - 1] <= 25 && s.werte[i] - s.werte[i - 1] <= 25;
+    if (ruhig && start == null) start = i;
+    if (!ruhig && start != null) { if (i - start >= 36) zeiten.push({ von: zeitVon(start), bis: zeitVon(i) }); start = null; }
+  }
+  return zeiten;
+})();
+const abwesendUm = ms => ABWESEND.find(a => ms >= a.von && ms < a.bis);
+const abwesendIm = () => ABWESEND.filter(a => a.bis > zeitVon(A) && a.von < zeitVon(B) + STUNDE);
+
 // Lüften: von auslesen.py erkannt (schneller Abfall von CO₂ oder Radon)
 DATEN.lueften.forEach(e => e.ort = NAMEN[e.ort] || e.ort);
+// Radon-Abfälle während einer Abwesenheit sind kein Lüften (niemand da), sondern Messschwankungen
+DATEN.lueften = DATEN.lueften.filter(e => !abwesendUm(e.zeit) || e.hinweis.some(h => h.startsWith("CO")));
 const lueftenIm = () => DATEN.lueften.filter(e => e.zeit >= zeitVon(A) && e.zeit < zeitVon(B) + STUNDE);
 const lueftHinweis = e => e.hinweis.map(h => h.replace("→", " → ") + (h.startsWith("CO") ? " ppm" : " Bq/m³")).join(", ");
 const stundeVon = ms => parseInt(fStd.format(ms), 10) % 24;
@@ -580,6 +600,14 @@ function erkenntnisseZeichnen() {
            (p ? `Die längste Zeit, in der im ganzen Haus kein Lüften erkannt wurde, war <b>${zahl((p.bis - p.von) / TAG, 1)} Tage</b> (${tagUhr(p.von)} bis ${tagUhr(p.bis)}). ` : "") +
            (pk && pk.bis - pk.von > 2 * TAG ? `In der Küche (dort gibt es einen CO₂-Sensor) wurde am längsten vom ${tagUhr(pk.von)} bis ${tagUhr(pk.bis)} nicht gelüftet.` : ""));
   } else s.push(`Im gewählten Zeitraum wurde kein Lüften erkannt.`);
+  // Abwesenheit
+  abwesendIm().forEach(a => {
+    const drin = [], sonst = [];
+    for (let k = A; k <= B; k++) { const h = hausWert(k); if (h != null) (zeitVon(k) >= a.von && zeitVon(k) < a.bis ? drin : sonst).push(h); }
+    s.push(`Vom <b>${tagUhr(a.von)}</b> bis <b>${tagUhr(a.bis)}</b> war vermutlich <b>niemand zu Hause</b> (${zahl((a.bis - a.von) / TAG, 1)} Tage): ` +
+           `CO₂ ist in Küche und Schlafzimmer nur langsam gesunken und nie gestiegen, und es wurde nicht gelüftet. ` +
+           (drin.length && sonst.length ? `In dieser Zeit lag Radon im ganzen Haus im Mittel bei <b>${zahl(mittel(drin))} Bq/m³</b>, sonst bei ${zahl(mittel(sonst))} Bq/m³.` : ""));
+  });
   if (KORR.length) {
     const st = KORR.reduce((a, b) => Math.abs(b.r) > Math.abs(a.r) ? b : a);
     s.push(`Der stärkste Zusammenhang besteht zwischen Radon in <b>${st.ort}</b> und <b>${st.faktor}</b> (r = ${zahl(st.r, 2)}): ` +
@@ -627,7 +655,8 @@ function planZeichnen() {
   const zeit = modus === "zeit";
   regler.disabled = !zeit;
   document.getElementById("planplay").disabled = !zeit;
-  document.getElementById("planzeittext").textContent = zeit ? tagUhr(zeitVon(k)) : `${tag(zeitVon(A))} – ${tag(zeitVon(B))}`;
+  document.getElementById("planzeittext").textContent = zeit
+    ? tagUhr(zeitVon(k)) + (abwesendUm(zeitVon(k)) ? " · vermutlich niemand zu Hause" : "") : `${tag(zeitVon(A))} – ${tag(zeitVon(B))}`;
   const anzeige = w => modus === "ueber" ? `${zahl(w)} h` : `${zahl(w)} Bq/m³`;
   const fuellung = w => modus === "ueber" ? radonFarbe(w > 0 ? 300 + Math.min(w, 300) : 50) : radonFarbe(w);
 
@@ -805,6 +834,24 @@ function neu(id, config) {
 const linie = (label, daten, f, extra = {}) => ({ label, data: daten, borderColor: f, backgroundColor: f, borderWidth: 1.75,
   pointRadius: 0, pointHoverRadius: 4, tension: 0.2, spanGaps: false, ...extra });
 
+// graues Band hinter den Kurven: vermutlich niemand zu Hause
+const abwesendBand = {
+  id: "abwesendBand",
+  beforeDatasetsDraw(chart) {
+    const { ctx, chartArea: a, scales } = chart;
+    ctx.save(); ctx.font = "11px system-ui, sans-serif";
+    abwesendIm().forEach(z => {
+      const x1 = Math.max(a.left, scales.x.getPixelForValue(z.von)), x2 = Math.min(a.right, scales.x.getPixelForValue(z.bis));
+      if (x2 <= x1) return;
+      ctx.fillStyle = farbe("--surface-2"); ctx.fillRect(x1, a.top, x2 - x1, a.bottom - a.top);
+      ctx.fillStyle = farbe("--muted"); ctx.textAlign = "left";
+      if (x2 - x1 > 60) ctx.fillText("niemand zu Hause", x1 + 4, a.top + 12);
+      else ctx.fillText("Urlaub?", x1 + 2, a.top + 12);
+    });
+    ctx.restore();
+  }
+};
+
 // kleine Striche am unteren Rand des Verlaufs: hier wurde gelüftet (Farbe des Raums)
 const lueftMarken = {
   id: "lueftMarken",
@@ -841,7 +888,7 @@ function verlaufZeichnen() {
   opt.plugins.linien = { waagrecht: [{ wert: WHO, text: "WHO 100", farbe: farbe("--good") }, { wert: REFERENZ, text: "Referenzwert 300", farbe: farbe("--bad") }] };
   neu("verlauf", { type: "line",
     data: { datasets: radon.filter(r => sichtbar.includes(r.ort)).map(r => linie(r.ort, punkte(r), farbe(r.farbe))) },
-    options: opt, plugins: [linienPlugin, fadenkreuz, lueftMarken] });
+    options: opt, plugins: [abwesendBand, linienPlugin, fadenkreuz, lueftMarken] });
 }
 
 function vergleichZeichnen() {
@@ -989,7 +1036,7 @@ function klimaZeichnen() {
     const opt = grundOptionen(einheit, stellen);
     opt.plugins.legend = { display: true, position: "top", align: "start", labels: { color: farbe("--ink-2"), boxWidth: 10, boxHeight: 10, font: { size: 12 } } };
     if (grenzen) opt.plugins.linien = { waagrecht: grenzen };
-    neu(id, { type: "line", data: { datasets: ds }, options: opt, plugins: [linienPlugin, fadenkreuz] });
+    neu(id, { type: "line", data: { datasets: ds }, options: opt, plugins: [abwesendBand, linienPlugin, fadenkreuz] });
   };
   zwei("k_co2", "CO", "ppm", 0, [{ wert: 1000, text: "1000 ppm", farbe: farbe("--warn") }]);
   zwei("k_temp", "Temperatur innen", "°C", 1);
@@ -1088,6 +1135,10 @@ function ereignisseZeichnen() {
   });
   const p = laengstePause();
   if (p && p.bis - p.von > TAG) liste.push([p.von, `Längste Zeit ohne erkanntes Lüften beginnt: <b>${zahl((p.bis - p.von) / TAG, 1)} Tage</b> bis ${tagUhr(p.bis)}`]);
+  abwesendIm().forEach(a => {
+    liste.push([a.von, `Vermutlich <b>niemand mehr zu Hause</b> (CO₂ steigt nicht mehr), ${zahl((a.bis - a.von) / TAG, 1)} Tage lang`]);
+    liste.push([a.bis, `Vermutlich <b>wieder jemand zu Hause</b>: CO₂ steigt wieder${DATEN.lueften.some(e => e.zeit >= a.bis && e.zeit < a.bis + 2 * STUNDE) ? ", und es wird gelüftet" : ""}`]);
+  });
   liste.sort((a, b) => a[0] - b[0]);
   document.getElementById("ereignisse").innerHTML = liste.length
     ? liste.map(([t, text]) => `<li><span class="when">${tagUhr(t)}</span><span>${text}</span></li>`).join("")
@@ -1164,7 +1215,8 @@ function tabelleZeichnen() {
     `<tr><th>Tag</th>${spalten.map(s => `<th>${s[0]}</th>`).join("")}<th style="text-align:left">Gelüftet</th></tr>` +
     tage.map(d => `<tr><td>${new Date(d + "T12:00:00").toLocaleDateString("de-AT")}</td>${reihen.map(m => {
       const v = m.get(d); return `<td>${v == null ? "–" : zahl(v, 1)}</td>`; }).join("")}<td style="text-align:left">${
-      DATEN.lueften.filter(e => fISO.format(e.zeit) === d).map(e => `${uhr(e.zeit)} ${e.ort}`).join(", ") || "–"}</td></tr>`).join("");
+      [ABWESEND.some(a => fISO.format(a.von) <= d && d <= fISO.format(a.bis)) ? "<i>vermutlich niemand zu Hause</i>" : "",
+       ...DATEN.lueften.filter(e => fISO.format(e.zeit) === d).map(e => `${uhr(e.zeit)} ${e.ort}`)].filter(Boolean).join(", ") || "–"}</td></tr>`).join("");
 }
 
 // =====================================================================

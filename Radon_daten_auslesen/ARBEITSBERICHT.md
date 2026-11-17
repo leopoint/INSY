@@ -66,6 +66,7 @@ Oben wählt man den Zeitraum: gesamt, die letzten 7 oder 30 Tage, einen Monat od
 | Raumklima | Kennzahlen (CO₂-Mittel und -Maximum, Stunden über 1000 ppm, Temperaturbereich, Anteil der Zeit mit Luftfeuchte außerhalb 30–60 %) und Verläufe von CO₂, Temperatur, Luftfeuchte und Luftdruck in Küche und Schlafzimmer |
 | Wetter | Außen- und Bodentemperatur, Luftdruck, Wind |
 | Zusammenhänge | Korrelation zwischen Radon in jedem Raum und Außentemperatur, Temperaturunterschied innen–außen, Luftdruck, Wind, Bodentemperatur und CO₂ |
+| Abwesenheit | Zeiten, in denen vermutlich niemand zu Hause war: CO₂ steigt in Küche und Schlafzimmer mindestens 36 Stunden lang in keiner Stunde um mehr als 25 ppm (wer im Haus ist, atmet und lässt CO₂ steigen). Wird als graues Band in den Verläufen, im Raumplan, in den Erkenntnissen, bei den Ereignissen und in der Tagestabelle angezeigt |
 | Ereignisse | höchste Spitzen, längste Phasen über 300 Bq/m³ und gleichzeitige Neustarts mehrerer Sensoren (vermutlich Stromausfälle) |
 | Datenqualität | je Sensor: Anzahl Messungen, Messbeginn, Neustarts, Lücken, längste Lücke, Minimum und Maximum der Einzelwerte |
 | Tabelle | Tagesmittelwerte aller Räume, dazu der Download der Stundenwerte |
@@ -78,6 +79,7 @@ Jede Messgröße hat ihr eigenes Diagramm, damit nie zwei Einheiten auf einer Ac
 - **Räume:** Am höchsten ist der Sensor am Küchensockel (60 Bq/m³), am niedrigsten das Büro (37 Bq/m³). Der Sockel liegt nahe am Boden, wo das Radon ins Haus kommt.
 - **Jahreszeit:** August hatte die höchsten Werte (101 Bq/m³), September die niedrigsten (30 Bq/m³).
 - **Anfang August:** Vom 2. bis 6.08. lagen bis zu alle sieben Räume gleichzeitig über 300 Bq/m³, teilweise mehrere Tage am Stück (Küchensockel 94 Stunden). Wenn alle Räume zugleich steigen, liegt die Ursache im ganzen Haus, zum Beispiel weil längere Zeit nicht gelüftet wurde.
+- **Urlaub:** Vom 31.07.2026, 06:00 bis 06.08.2026, 20:00 war vermutlich niemand zu Hause (6,6 Tage). CO₂ ist in dieser Zeit nur langsam gesunken und nie gestiegen. Radon lag in dieser Zeit im ganzen Haus im Mittel bei 283 Bq/m³, sonst bei 44 Bq/m³, also mehr als sechsmal so hoch. Das zeigt deutlich, wie wichtig regelmäßiges Lüften ist. Es ist die einzige so lange Phase im ganzen Messzeitraum.
 - **Lüften:** 338 Lüftungen erkannt (etwa 1,7 pro Tag), am häufigsten um 6 Uhr, im Schlafzimmer meist um 22 Uhr. In der Küche wurde vom 31.07. bis 06.08.2026 fast 7 Tage lang kein Lüften erkannt, genau in der Zeit mit den höchsten Werten. Am 06.08. gegen 20 Uhr wurde in fast allen Räumen gleichzeitig gelüftet, danach fielen die Werte. War Radon vorher über 100 Bq/m³, lag es 2 Stunden nach dem Lüften im Schnitt um etwa die Hälfte niedriger.
 - **Stockwerke:** Keller 54 Bq/m³, Erdgeschoss 46 Bq/m³, 1. Stock 55 Bq/m³ (Mittel der Räume). Das Schlafzimmer im 1. Stock misst aber erst ab 13.05.2026 und hat deshalb die kühleren Monate mit eher höheren Werten nicht, der Vergleich ist nur bedingt fair.
 - **Tag und Nacht:** In fast allen Räumen ist Radon nachts höher als tagsüber, am deutlichsten im Wohnzimmer, in der Küche und im Büro.

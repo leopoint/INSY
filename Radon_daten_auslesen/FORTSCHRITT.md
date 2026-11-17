@@ -27,6 +27,7 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Lüftungserkennung ergänzt: Ein schneller Abfall von CO₂ oder Radon wird als Lüften gewertet (338 Lüftungen erkannt). Das Lüften ist jetzt in allen Ansichten des Dashboards eingetragen. Ergebnis: Am häufigsten wird um 6 Uhr gelüftet. In der Küche wurde vom 31.07. bis 06.08.2026 fast eine Woche lang nicht gelüftet, genau in der Zeit mit den höchsten Radonwerten.
 - **17.11.2026** – Weitere Auswertungen ergänzt: Tag-Nacht-Vergleich je Raum, Wochentage und Kennzahlen zum Raumklima (z. B. Stunden mit CO₂ über 1000 ppm).
 - **17.11.2026** – Raumplan auf drei Stockwerke aufgeteilt (Keller, Erdgeschoss, 1. Stock), jeweils mit Mittelwert des Stockwerks.
+- **17.11.2026** – Erkennung von Abwesenheit ergänzt: Steigt CO₂ in Küche und Schlafzimmer mindestens 36 Stunden lang nicht an, war vermutlich niemand zu Hause. Gefunden wurde genau eine solche Phase, vom 31.07. bis 06.08.2026 (Urlaub). In dieser Zeit lag Radon im Mittel bei 283 Bq/m³ statt 44 Bq/m³.
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
 
