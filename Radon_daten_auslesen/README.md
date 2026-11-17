@@ -1,6 +1,6 @@
 # Radondaten auslesen (INSY, 5. Klasse)
 
-Radon-Messdaten werden aus einer PDF ausgelesen, bereinigt und in einem Dashboard im Browser dargestellt.
+Echte Radon-Messdaten eines Hauses (7 Räume, Raumklima, Wetter, 24.03. bis 13.10.2026) werden ausgelesen, bereinigt und in einem Dashboard im Browser dargestellt.
 
 - **Dashboard (im Browser, ohne Installation):** https://leopoint.github.io/INSY/Radon_daten_auslesen/dashboard/
 - **Ausführliche Beschreibung:** [ARBEITSBERICHT.md](ARBEITSBERICHT.md)
@@ -10,34 +10,34 @@ Radon-Messdaten werden aus einer PDF ausgelesen, bereinigt und in einem Dashboar
 
 | Datei / Ordner | Inhalt |
 |---|---|
-| [`auslesen.py`](auslesen.py) | liest die PDF, repariert die Zeichenkodierung, entfernt ungültige Werte und speichert die Daten |
-| [`daten/radon_daten.csv`](daten/radon_daten.csv) | die ausgelesene Tabelle (alle 29 Spalten, für Excel oder zum Nachprüfen) |
-| [`dashboard/`](dashboard/) | `index.html` (Dashboard) und `daten.js` (die bereinigten Daten, von `auslesen.py` erzeugt) |
+| [`auslesen.py`](auslesen.py) | liest die Messdaten (CSV oder PDF), entfernt ungültige Werte und bildet Stundenwerte |
+| [`daten/radon_stuendlich.csv`](daten/radon_stuendlich.csv) | Stundenmittel aller Messgrößen (für Excel oder zum Nachprüfen) |
+| [`dashboard/`](dashboard/) | `index.html` (Dashboard) und `daten.js` (die Stundenwerte, von `auslesen.py` erzeugt) |
 
 ## Ablauf
 
 ```
-PDF → Text (pypdf) → Tabelle (CSV) → bereinigen → daten/radon_daten.csv
-                                               → dashboard/daten.js → Dashboard (index.html)
+CSV oder PDF → Text → Tabelle → bereinigen → Stundenwerte → daten/radon_stuendlich.csv
+                                                        → dashboard/daten.js → Dashboard (index.html)
 ```
 
 ## Das zeigt das Dashboard
 
-- Raumplan: schematischer Grundriss des Hauses, jeder Raum in der Farbe seines Radonwerts (grün bis rot), mit Zeitregler zum Abspielen
-- Kennzahlen: Mittelwert mit Bewertung, Höchst- und Tiefstwert mit Uhrzeit, Anteil der Zeit über 300 Bq/m³, letzter Wert
-- Radonverlauf mit den Grenzen 100 Bq/m³ (WHO) und 300 Bq/m³ (Referenzwert Österreich) und markiertem Sensor-Neustart
-- Verteilung der Messzeit auf die Bereiche niedrig / erhöht / über Referenzwert
-- Tagesverlauf (mittlerer Radonwert je Uhrzeit)
-- automatisch erkannte Auffälligkeiten (Höchstwert, stärkster Abfall und Anstieg, längste Phase über 300)
-- Wetterdaten (Außen- und Bodentemperatur, Luftdruck, Wind) auf derselben Zeitachse und deren Korrelation mit Radon
-- Messwerte als Stundentabelle
+- Zeitraum frei wählbar (gesamt, letzte 7/30 Tage, einzelne Monate, eigenes Datum)
+- Kennzahlen und automatisch formulierte „Wichtigste Erkenntnisse“
+- Raumplan: schematischer Grundriss, jeder Raum in der Farbe seines Radonwerts (grün bis rot), mit Zeitregler zum Abspielen
+- Räume im Vergleich, Zeitverlauf mit den Grenzen 100 Bq/m³ (WHO) und 300 Bq/m³ (Referenzwert Österreich)
+- Monatsübersicht, Tagesverlauf und „Fingerabdruck“ (Tag × Uhrzeit) je Raum
+- Raumklima (CO₂, Temperatur, Feuchte, Luftdruck) und Wetter
+- Zusammenhänge zwischen Radon, Wetter und CO₂ (Korrelation)
+- Ereignisse (Spitzen, lange Phasen über 300, vermutete Stromausfälle), Datenqualität je Sensor, Tagesmittel als Tabelle
 
 ## Selbst ausführen
 
-Voraussetzung: Python 3.12 mit `pypdf` (`pip install pypdf`).
+Voraussetzung: Python 3.12 (für PDFs zusätzlich `pip install pypdf`).
 
 ```
-python auslesen.py
+python auslesen.py daten/radon_alle_raeume.csv
 ```
 
-Danach `dashboard/index.html` doppelklicken. Eine andere PDF mit demselben Aufbau: `python auslesen.py andere.pdf`. Die Mess-PDF selbst liegt nicht im Repository.
+Danach `dashboard/index.html` doppelklicken. Die Rohdatei (20 MB) liegt nicht im Repository, die bereinigten Stundenwerte schon.

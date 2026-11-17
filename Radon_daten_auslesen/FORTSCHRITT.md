@@ -10,9 +10,10 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 | Teil | Inhalt | Status |
 |------|--------|--------|
 | 1 | Daten aus der PDF auslesen und bereinigen (`auslesen.py`) | ✅ fertig |
-| 2 | Dashboard mit Kennzahlen, Verlauf, Tagesverlauf, Auffälligkeiten und Wetter | ✅ erste Version |
+| 2 | Dashboard mit Kennzahlen, Verlauf, Tagesverlauf, Auffälligkeiten und Wetter | ✅ fertig |
 | 3 | Raumplan mit Farbskala und Zeitregler | ✅ fertig |
 | 4 | Dokumentation und Veröffentlichung über GitHub Pages | ✅ fertig |
+| 5 | Vollständige Daten aller Räume (CSV, März bis Oktober 2026) | ✅ fertig |
 
 ## Verlauf
 
@@ -21,6 +22,7 @@ Diese Datei wird laufend aktualisiert und zeigt, woran ich gerade arbeite.
 - **17.11.2026** – Erste Version des Dashboards erstellt. Ergebnis für die Küche: Mittelwert 350 Bq/m³, Höchstwert 707 Bq/m³, 61 % der Messzeit über dem österreichischen Referenzwert von 300 Bq/m³.
 - **17.11.2026** – Raumplan ergänzt: Ein schematischer Grundriss zeigt jeden Raum in der Farbe seines Radonwerts, mit Zeitregler und den Wetterwerten draußen.
 - **17.11.2026** – Projekt auf GitHub hochgeladen, das Dashboard ist über GitHub Pages online.
+- **17.11.2026** – Vollständige Messdaten als CSV übernommen: 229.403 Zeilen vom 24.03. bis 13.10.2026 mit 7 Radonsensoren, Raumklima in Küche und Schlafzimmer und Wetterdaten. Das Auslese-Skript bildet jetzt Stundenmittel. Das Dashboard wurde für mehrere Monate und alle Räume erweitert: Zeitraumauswahl, automatische Erkenntnisse, Raumvergleich, Monatsübersicht, Tag-Uhrzeit-Bild je Raum, Raumklima, Zusammenhänge mit Wetter und CO₂, Ereignisse und Datenqualität. Ergebnis: Das Haus liegt im Mittel bei 52 Bq/m³ und damit deutlich unter dem Referenzwert. Anfang August lagen jedoch alle Räume mehrere Tage gleichzeitig über 300 Bq/m³.
 
 ## KI-Nutzung: Token-Verbrauch und Kosten
 
@@ -28,7 +30,7 @@ Das Projekt wird mit Claude Code (Modell Claude Opus 5.5) als Tutor und Programm
 
 | Sitzung | Dauer | Antworten | Eingabe | Ausgabe | Cache geschrieben | Cache gelesen | Kosten (API-Preis) |
 |---|---|---|---|---|---|---|---|
-| 17.11.2026 15:24 | 17 min | 83 | 186 | 79.148 | 179.787 | 14.785.527 | 5,98 $ |
-| **Summe** | | 83 | 186 | 79.148 | 179.787 | 14.785.527 | **5,98 $** |
+| 17.11.2026 15:24 | 32 min | 139 | 304 | 153.402 | 294.834 | 30.579.015 | 11,54 $ |
+| **Summe** | | 139 | 304 | 153.402 | 294.834 | 30.579.015 | **11,54 $** |
 
-Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 15:41.
+Die Kosten sind mit den Listenpreisen der Claude-API berechnet: 4 $ pro Million Eingabe-Tokens, 20 $ pro Million Ausgabe-Tokens, 8 $ pro Million in den Cache geschriebener Tokens (1-Stunden-Cache) und 0,20 $ pro Million aus dem Cache gelesener Tokens. Bei einem Claude-Abo wird nicht pro Token abgerechnet; die Kosten zeigen dann den Gegenwert zu API-Preisen. Stand der Zahlen: 17.11.2026, 15:57.

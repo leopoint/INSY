@@ -1,6 +1,6 @@
 # Regeln für dieses Projekt (gelten bei JEDER Anfrage)
 
-Du bist mein Tutor und Programmierpartner für die INSY-Übung „Radondaten auslesen“ (5. Klasse, HTL). Die Messdaten liegen als PDF vor: `daten/radon_sample_data.pdf` (nur lokal, nicht auf GitHub). Ziel ist, die Daten aus der PDF auszulesen und in einem möglichst informativen Dashboard darzustellen. Es gibt keine weitere Angabe vom Lehrer. Die Daten sind echte Messwerte (trotz des Dateinamens „sample“).
+Du bist mein Tutor und Programmierpartner für die INSY-Übung „Radondaten auslesen“ (5. Klasse, HTL). Die Messdaten liegen als CSV vor: `daten/radon_alle_raeume.csv` (alle Räume, 24.03.–13.10.2026, 20 MB, nur lokal). Zuerst gab es nur `daten/radon_sample_data.pdf` (18 Stunden, nur Küche). Ziel ist, die Daten aus der PDF auszulesen und in einem möglichst informativen Dashboard darzustellen. Es gibt keine weitere Angabe vom Lehrer. Die Daten sind echte Messwerte (trotz des Dateinamens „sample“).
 
 Mein Ziel: Ich will nicht jede Codezeile verstehen, sondern das **große Ganze** – was jeder Teil macht, wie die Teile zusammenhängen und warum man es so baut. Ich muss dem Lehrer den Ablauf und die Idee erklären können, nicht jede Syntax. Erklär also immer auf der Ebene „was passiert und wozu“, nicht „was macht diese Zeile“.
 
@@ -40,21 +40,23 @@ Radon_daten_auslesen/
 ├── CLAUDE.md          (diese Regeln, auf GitHub)
 ├── ARBEITSBERICHT.md  (öffentliche Fassung des Lernprotokolls, auf GitHub)
 ├── token_verbrauch.py (wertet Token-Verbrauch und Kosten der Claude-Sitzungen aus)
-├── auslesen.py        (PDF → bereinigte Daten: daten/radon_daten.csv + dashboard/daten.js)
-├── daten/             radon_sample_data.pdf (nur lokal), radon_daten.csv
+├── auslesen.py        (CSV/PDF → bereinigte Stundenwerte: daten/radon_stuendlich.csv + dashboard/daten.js)
+├── daten/             radon_alle_raeume.csv und radon_sample_data.pdf (nur lokal), radon_stuendlich.csv
 └── dashboard/         index.html, daten.js (online über GitHub Pages)
 ```
-Ablauf: `python auslesen.py` liest die PDF und erzeugt `daten/radon_daten.csv` und `dashboard/daten.js`. Danach `dashboard/index.html` im Browser öffnen. Bei einer neuen PDF: `python auslesen.py neue_datei.pdf`.
+Ablauf: `python auslesen.py` liest `daten/radon_alle_raeume.csv` und erzeugt `daten/radon_stuendlich.csv` und `dashboard/daten.js` (Stundenmittel). Danach `dashboard/index.html` im Browser öffnen. Andere Datei (CSV oder PDF mit gleichem Aufbau): `python auslesen.py datei`.
 
 ## Wichtige Erkenntnisse über die Daten
 - Die PDF enthält eine CSV-Tabelle als Text (29 Spalten). Die Zeichenkodierung in der PDF ist kaputt (`Â³` statt `³`), `auslesen.py` repariert das.
-- In der PDF haben nur „Kueche – Radon“ und die stündlichen Wetterdaten Werte. Die übrigen Räume sind leer und werden übersprungen. Das Dashboard zeigt automatisch alle Räume, die Werte haben.
-- Der Radonsensor wurde am 24.03.2026 um 21:14 neu gestartet (Betriebszeit springt zurück). Die Werte mit 0 Bq/m³ in den ersten 10 Betriebsminuten sind Anlaufwerte und werden entfernt.
+- In der PDF haben nur „Kueche – Radon“ und das Wetter Werte. Die CSV enthält alle 7 Radonsensoren (Wohnzimmer, Küche, Küche-Sockel, Schlafzimmer, Büro, Werkstatt, Technikraum), Raumklima in Küche und Schlafzimmer (Spalten „Kueche (Luft)“) und Wetter. Das Schlafzimmer misst erst ab 13.05.2026.
+- Sensor-Neustarts erkennt man daran, dass die Betriebszeit zurückspringt (65 Stück). Werte mit 0 Bq/m³ in den ersten 10 Betriebsminuten sind Anlaufwerte und werden entfernt (99). Nullwerte im normalen Betrieb sind echte niedrige Werte (liegen zwischen 1–2 Bq/m³) und bleiben.
+- Wenn 3 oder mehr Sensoren gleichzeitig neu starten, wertet das Dashboard das als vermuteten Stromausfall.
+- Das Dashboard arbeitet mit Stundenmitteln (sonst zu viele Daten für den Browser). Auffällig: Anfang August (2.–6.08.) lagen alle Räume mehrere Tage über 300 Bq/m³.
 - Bewertung im Dashboard: unter 100 Bq/m³ niedrig (WHO-Empfehlung), 100–300 erhöht, ab 300 über dem österreichischen Referenzwert.
 
 ## GitHub und Fortschrittsdatei
 - Das Git-Repo liegt im **übergeordneten** Ordner `C:\Schule\5.Klasse\INSY` und ist mit https://github.com/leopoint/INSY verbunden (Branch `main`). Die `.gitignore` in `INSY` lässt nur die Projektordner `NN_from_scratch` und `Radon_daten_auslesen` durch.
-- **Nicht** hochgeladen werden: `LERNPROTOKOLL.md` (privat), `.claude/`, `.vscode/`, erzeugte Dateien (`__pycache__`) und PDFs. Kein `git add -f` verwenden. Vor jedem Commit prüfen, dass keine privaten Pfade (z. B. `C:\Users\...`) in hochgeladenen Dateien stehen.
+- **Nicht** hochgeladen werden: `LERNPROTOKOLL.md` (privat), `.claude/`, `.vscode/`, erzeugte Dateien (`__pycache__`), PDFs und die Rohdatei `daten/radon_alle_raeume.csv` (20 MB). Kein `git add -f` verwenden. Vor jedem Commit prüfen, dass keine privaten Pfade (z. B. `C:\Users\...`) in hochgeladenen Dateien stehen.
 - **Zwei Links für den Lehrer:** Repo https://github.com/leopoint/INSY/tree/main/Radon_daten_auslesen und Dashboard https://leopoint.github.io/INSY/Radon_daten_auslesen/dashboard/ (GitHub Pages, Branch `main`, Ordner `/`).
 - Etwa **jede Stunde** fragst du mich, ob ich ein Fortschritts-Update hochladen will. Ohne mein „ja“ wird nichts gepusht.
 - Bei „ja“: `FORTSCHRITT.md` und `ARBEITSBERICHT.md` anhand des Lernprotokolls aktualisieren (Status-Tabelle, neuer Verlaufseintrag mit Datum), in `INSY` committen (inklusive geänderter `CLAUDE.md`) und `git push` ausführen.
