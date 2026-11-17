@@ -8,7 +8,7 @@ Dieser Bericht beschreibt, wie die Radon-Messdaten aus einer PDF ausgelesen, ber
 
 ## 1. Ziel und Gesamtablauf
 
-Gegeben ist eine PDF mit Messdaten mehrerer Sensoren in einem Haus: Radon in verschiedenen Räumen, Raumklima und Wetterdaten. Ziel ist, diese Daten maschinell auszulesen und so darzustellen, dass man auf einen Blick sieht, wie hoch die Radonbelastung ist, wann sie hoch ist und womit sie zusammenhängen könnte.
+Gegeben ist eine PDF mit echten Messdaten mehrerer Sensoren in einem Haus: Radon in verschiedenen Räumen, Raumklima und Wetterdaten. Ziel ist, diese Daten maschinell auszulesen und so darzustellen, dass man auf einen Blick sieht, wie hoch die Radonbelastung ist, wann sie hoch ist und womit sie zusammenhängen könnte.
 
 ```
 PDF → Text (pypdf) → Tabelle (CSV) → bereinigen → daten/radon_daten.csv
@@ -37,7 +37,7 @@ In jeder Zeile ist meistens nur ein Teil der Spalten gefüllt, weil die Sensoren
 
 1. **Text aus der PDF holen.** Mit der Bibliothek `pypdf` wird der Text jeder Seite gelesen.
 2. **Zeichenkodierung reparieren.** Die PDF wurde mit einer falschen Zeichenkodierung erzeugt. Aus `³` wurde `Â³`, aus dem Gedankenstrich `–` wurde `â€“`. Der Text wurde ursprünglich als UTF-8 gespeichert, aber als Windows-1252 gelesen. Das Skript macht genau diesen Schritt rückgängig.
-3. **Tabelle bilden.** Jede Textzeile wird beim Komma getrennt. Gültig ist eine Zeile nur, wenn sie gleich viele Spalten hat wie die Kopfzeile. In der Beispiel-PDF waren alle 236 Zeilen gültig.
+3. **Tabelle bilden.** Jede Textzeile wird beim Komma getrennt. Gültig ist eine Zeile nur, wenn sie gleich viele Spalten hat wie die Kopfzeile. In der PDF waren alle 236 Zeilen gültig.
 4. **Spaltennamen zerlegen.** Aus `Kueche – Radon (Bq/m³)` werden Ort (`Kueche`), Messgröße (`Radon`) und Einheit (`Bq/m³`). So kann das Dashboard die Spalten automatisch zuordnen, auch wenn später mehr Räume dazukommen.
 5. **Sensor-Neustart erkennen.** Zu jedem Radonsensor gibt es eine Spalte „Betriebszeit“ in Minuten. Wird sie kleiner, wurde der Sensor neu gestartet. Das war am 24.03. um 21:14 der Fall.
 6. **Anlaufwerte entfernen.** Direkt nach dem Neustart meldet der Sensor 0 Bq/m³, obwohl er noch nicht misst. Werte von 0 in den ersten 10 Betriebsminuten werden deshalb entfernt (3 Werte).
@@ -62,7 +62,7 @@ Das Dashboard berechnet alle Kennzahlen selbst aus `daten.js`. Mit einer neuen P
 
 Die Diagramme werden mit der Bibliothek Chart.js gezeichnet. Jede Messgröße wird in einem eigenen Diagramm gezeigt, damit keine zwei unterschiedlichen Einheiten auf einer Achse landen. Alle Zeitachsen sind gleich breit und liegen genau untereinander. Das Dashboard hat einen hellen und einen dunklen Modus und funktioniert auch am Handy.
 
-## 5. Ergebnisse (Beispiel-PDF, Küche)
+## 5. Ergebnisse (Küche)
 
 - **Mittelwert:** 350 Bq/m³, also über dem österreichischen Referenzwert von 300 Bq/m³.
 - **Höchstwert:** 707 Bq/m³ am 24.03. um 22:00. **Tiefstwert:** 123 Bq/m³ am 25.03. um 14:53.

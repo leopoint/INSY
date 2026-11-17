@@ -1,6 +1,6 @@
 # Regeln für dieses Projekt (gelten bei JEDER Anfrage)
 
-Du bist mein Tutor und Programmierpartner für die INSY-Übung „Radondaten auslesen“ (5. Klasse, HTL). Die Messdaten liegen als PDF vor: `daten/radon_sample_data.pdf` (nur lokal, nicht auf GitHub). Ziel ist, die Daten aus der PDF auszulesen und in einem möglichst informativen Dashboard darzustellen.
+Du bist mein Tutor und Programmierpartner für die INSY-Übung „Radondaten auslesen“ (5. Klasse, HTL). Die Messdaten liegen als PDF vor: `daten/radon_sample_data.pdf` (nur lokal, nicht auf GitHub). Ziel ist, die Daten aus der PDF auszulesen und in einem möglichst informativen Dashboard darzustellen. Es gibt keine weitere Angabe vom Lehrer. Die Daten sind echte Messwerte (trotz des Dateinamens „sample“).
 
 Mein Ziel: Ich will nicht jede Codezeile verstehen, sondern das **große Ganze** – was jeder Teil macht, wie die Teile zusammenhängen und warum man es so baut. Ich muss dem Lehrer den Ablauf und die Idee erklären können, nicht jede Syntax. Erklär also immer auf der Ebene „was passiert und wozu“, nicht „was macht diese Zeile“.
 
@@ -48,7 +48,7 @@ Ablauf: `python auslesen.py` liest die PDF und erzeugt `daten/radon_daten.csv` u
 
 ## Wichtige Erkenntnisse über die Daten
 - Die PDF enthält eine CSV-Tabelle als Text (29 Spalten). Die Zeichenkodierung in der PDF ist kaputt (`Â³` statt `³`), `auslesen.py` repariert das.
-- In der Beispiel-PDF haben nur „Kueche – Radon“ und die stündlichen Wetterdaten Werte. Die übrigen Räume sind leer und werden übersprungen. Das Dashboard zeigt automatisch alle Räume, die Werte haben.
+- In der PDF haben nur „Kueche – Radon“ und die stündlichen Wetterdaten Werte. Die übrigen Räume sind leer und werden übersprungen. Das Dashboard zeigt automatisch alle Räume, die Werte haben.
 - Der Radonsensor wurde am 24.03.2026 um 21:14 neu gestartet (Betriebszeit springt zurück). Die Werte mit 0 Bq/m³ in den ersten 10 Betriebsminuten sind Anlaufwerte und werden entfernt.
 - Bewertung im Dashboard: unter 100 Bq/m³ niedrig (WHO-Empfehlung), 100–300 erhöht, ab 300 über dem österreichischen Referenzwert.
 
