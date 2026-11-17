@@ -156,7 +156,7 @@
 
   <section class="card">
     <h2>Raumplan</h2>
-    <p class="hint">Schematischer Grundriss (die echte Raumaufteilung ist nicht bekannt). Jeder Raum hat die Farbe seines Radonwerts. Mit dem Regler geht man Stunde für Stunde durch den gewählten Zeitraum.</p>
+    <p class="hint">Schematischer Grundriss (die echte Raumaufteilung ist nicht bekannt). Jeder Raum hat die Farbe seines Radonwerts. Mit dem Regler geht man Stunde für Stunde durch den gewählten Zeitraum. Blau gestrichelter Rahmen: in diesem Raum wurde gerade gelüftet.</p>
     <div class="planbar">
       <select id="planmodus" aria-label="Was wird angezeigt">
         <option value="zeit">Wert zum Zeitpunkt</option>
@@ -183,6 +183,20 @@
         <div id="aussen"></div>
       </div>
     </div>
+  </section>
+
+  <section class="card">
+    <h2>Lüften</h2>
+    <p class="hint">Automatisch erkannt: Beim Lüften kommt frische Außenluft herein, deshalb fällt CO₂ schnell (mindestens 150 ppm in 30 Minuten, nur Küche und Schlafzimmer haben CO₂-Sensoren) oder Radon schnell (um mindestens 60 Bq/m³ auf höchstens 65 % innerhalb einer Stunde). In Räumen ohne CO₂-Sensor wird Lüften nur erkannt, wenn Radon vorher hoch war. CO₂ wird erst ab <span id="co2start"></span> gemessen, davor ist die Erkennung lückenhaft.</p>
+    <div class="tiles" id="lueftkacheln"></div>
+    <div class="grid2" style="margin-top:16px">
+      <div><h3>Wann wird gelüftet? (Anzahl je Uhrzeit)</h3><div class="chartbox mid"><canvas id="lueftstunden"></canvas></div></div>
+      <div><h3>Je Raum</h3><div class="tablewrap"><table id="luefttabelle"></table></div></div>
+    </div>
+    <details style="margin-top:14px">
+      <summary>Alle erkannten Lüftungen im Zeitraum</summary>
+      <ul class="liste" id="lueftliste" style="margin-top:8px"></ul>
+    </details>
   </section>
 
   <section class="card">
@@ -214,7 +228,7 @@
 
   <section class="card">
     <h2>Fingerabdruck eines Raums</h2>
-    <p class="hint">Jede Spalte ist ein Tag, jede Zeile eine Uhrzeit (oben 0 Uhr, unten 23 Uhr). So sieht man auf einen Blick, an welchen Tagen und zu welcher Uhrzeit Radon hoch ist. Mit der Maus über das Bild fahren zeigt den Wert.</p>
+    <p class="hint">Jede Spalte ist ein Tag, jede Zeile eine Uhrzeit (oben 0 Uhr, unten 23 Uhr). So sieht man auf einen Blick, an welchen Tagen und zu welcher Uhrzeit Radon hoch ist. Weiße Punkte: hier wurde gelüftet. Mit der Maus über das Bild fahren zeigt den Wert.</p>
     <div class="chips"><select id="fpraum" aria-label="Raum"></select></div>
     <canvas id="fingerabdruck"></canvas>
     <div class="fpachse" id="fpachse"></div>
@@ -251,7 +265,7 @@
 
   <section class="card">
     <h2>Ereignisse</h2>
-    <p class="hint">Höchste Spitzen, längste Phasen über 300 Bq/m³ und vermutete Stromausfälle im Zeitraum</p>
+    <p class="hint">Höchste Spitzen, längste Phasen über 300 Bq/m³, längste Zeit ohne Lüften und vermutete Stromausfälle im Zeitraum</p>
     <ul class="liste" id="ereignisse"></ul>
   </section>
 
@@ -365,6 +379,25 @@ const radon = DATEN.reihen.filter(r => r.groesse === "Radon")
 radon.forEach((r, i) => r.farbe = `--s${i % 7 + 1}`);
 const reihe = (ort, groesse) => DATEN.reihen.find(r => r.ort === ort && r.groesse.startsWith(groesse));
 const wetter = groesse => reihe("Wetter", groesse);
+
+// Lüften: von auslesen.py erkannt (schneller Abfall von CO₂ oder Radon)
+DATEN.lueften.forEach(e => e.ort = NAMEN[e.ort] || e.ort);
+const lueftenIm = () => DATEN.lueften.filter(e => e.zeit >= zeitVon(A) && e.zeit < zeitVon(B) + STUNDE);
+const lueftHinweis = e => e.hinweis.map(h => h.replace("→", " → ") + (h.startsWith("CO") ? " ppm" : " Bq/m³")).join(", ");
+const stundeVon = ms => parseInt(fStd.format(ms), 10) % 24;
+const vorZeit = ms => ms < TAG ? `vor ${zahl(ms / STUNDE)} h` : `vor ${zahl(ms / TAG, 1)} Tagen`;
+// Ab wann es CO₂-Sensoren gibt: erst ab dann wird Lüften zuverlässig erkannt
+const CO2_START = Math.min(...DATEN.reihen.filter(r => r.groesse.startsWith("CO")).map(r => r.stat.von));
+// längste Zeit ohne erkanntes Lüften im Zeitraum (ab CO₂-Messbeginn), optional nur für einen Raum
+function laengstePause(ort) {
+  const start = Math.max(zeitVon(A), CO2_START);
+  if (start >= zeitVon(B)) return null;
+  const z = lueftenIm().filter(e => e.zeit >= start && (!ort || e.ort === ort)).map(e => e.zeit);
+  const grenzen = [start, ...z, zeitVon(B)];
+  let best = null;
+  for (let i = 1; i < grenzen.length; i++) if (!best || grenzen[i] - grenzen[i - 1] > best.bis - best.von) best = { von: grenzen[i - 1], bis: grenzen[i] };
+  return best;
+}
 let sichtbar = radon.map(r => r.ort);           // welche Räume im Verlauf angezeigt werden
 
 // Gewählter Zeitraum als Stundenindex [A, B]
@@ -510,6 +543,15 @@ function erkenntnisseZeichnen() {
            `zum Beispiel weil längere Zeit nicht gelüftet wurde, und nicht an einem einzelnen Raum.`);
   }
   // stärkster Zusammenhang aus der Korrelationstabelle
+  // Lüften
+  const le = lueftenIm();
+  if (le.length) {
+    const ps = Array(24).fill(0); le.forEach(e => ps[stundeVon(e.zeit)]++);
+    const h = ps.indexOf(Math.max(...ps)), p = laengstePause(), pk = laengstePause("Küche");
+    s.push(`Gelüftet wurde <b>${le.length}-mal</b> (etwa ${zahl(le.length / tageImZeitraum(), 1)}-mal pro Tag), am häufigsten um <b>${h} Uhr</b>. ` +
+           (p ? `Die längste Zeit, in der im ganzen Haus kein Lüften erkannt wurde, war <b>${zahl((p.bis - p.von) / TAG, 1)} Tage</b> (${tagUhr(p.von)} bis ${tagUhr(p.bis)}). ` : "") +
+           (pk && pk.bis - pk.von > 2 * TAG ? `In der Küche (dort gibt es einen CO₂-Sensor) wurde am längsten vom ${tagUhr(pk.von)} bis ${tagUhr(pk.bis)} nicht gelüftet.` : ""));
+  } else s.push(`Im gewählten Zeitraum wurde kein Lüften erkannt.`);
   if (KORR.length) {
     const st = KORR.reduce((a, b) => Math.abs(b.r) > Math.abs(a.r) ? b : a);
     s.push(`Der stärkste Zusammenhang besteht zwischen Radon in <b>${st.ort}</b> und <b>${st.faktor}</b> (r = ${zahl(st.r, 2)}): ` +
@@ -566,6 +608,22 @@ function planZeichnen() {
     if (!raum.kein) {
       svg += `<text class="${w != null ? "wert" : "klein"}" x="${cx}" y="${cy + 16}" text-anchor="middle" fill="${text}">${w != null ? anzeige(w) : r ? "kein Wert um diese Zeit" : "kein Sensor"}</text>`;
       if (w != null && modus !== "ueber") svg += `<text class="klein" x="${cx}" y="${cy + 36}" text-anchor="middle" fill="${text}">${stufe(w).text}</text>`;
+      // Lüften: beim Zeitpunkt "zuletzt gelüftet", sonst Anzahl im Zeitraum; frisch gelüftet = blauer Rahmen
+      const le = DATEN.lueften.filter(e => e.ort === raum.ort);
+      if (zeit) {
+        const letzte = le.filter(e => e.zeit < zeitVon(k) + STUNDE).pop();
+        if (letzte && zeitVon(k) - letzte.zeit < 2 * STUNDE)
+          svg += `<rect x="${raum.x + 5}" y="${raum.y + 5}" width="${raum.b - 10}" height="${raum.h - 10}" fill="none" stroke="#2a78d6" stroke-width="4" stroke-dasharray="10 6"/>`;
+        // ohne CO₂-Sensor ist Lüften nur bei hohem Radon erkennbar → kein "zuletzt vor 50 Tagen" anzeigen
+        const mitCO2 = !!raum.klima && zeitVon(k) >= CO2_START, alt = letzte ? Math.max(0, zeitVon(k) - letzte.zeit) : Infinity;
+        const zeile = alt < 2 * STUNDE ? `gerade gelüftet (${uhr(letzte.zeit)})`
+          : mitCO2 || alt < 2 * TAG ? (letzte ? `zuletzt gelüftet: ${vorZeit(alt)}` : "kein Lüften erkannt")
+          : "Lüften nur bei hohem Radon erkennbar";
+        svg += `<text class="klein" x="${cx}" y="${raum.y + raum.h - 12}" text-anchor="middle" fill="${text}">${zeile}</text>`;
+      } else {
+        const n = lueftenIm().filter(e => e.ort === raum.ort).length;
+        svg += `<text class="klein" x="${cx}" y="${raum.y + raum.h - 12}" text-anchor="middle" fill="${text}">${n}× gelüftet im Zeitraum</text>`;
+      }
       // Raumklima (nur Küche und Schlafzimmer haben Luftsensoren)
       if (raum.klima) {
         const t = reihe(raum.klima === "Kueche" ? "Küche" : raum.klima, "Temperatur innen"), c = reihe(raum.klima === "Kueche" ? "Küche" : raum.klima, "CO");
@@ -700,11 +758,28 @@ function neu(id, config) {
 const linie = (label, daten, f, extra = {}) => ({ label, data: daten, borderColor: f, backgroundColor: f, borderWidth: 1.75,
   pointRadius: 0, pointHoverRadius: 4, tension: 0.2, spanGaps: false, ...extra });
 
+// kleine Striche am unteren Rand des Verlaufs: hier wurde gelüftet (Farbe des Raums)
+const lueftMarken = {
+  id: "lueftMarken",
+  afterDraw(chart) {
+    const { ctx, chartArea: a, scales } = chart;
+    ctx.save();
+    lueftenIm().forEach(e => {
+      const r = radon.find(x => x.ort === e.ort);
+      if (r && !sichtbar.includes(r.ort)) return;
+      const x = scales.x.getPixelForValue(e.zeit);
+      ctx.strokeStyle = farbe(r ? r.farbe : "--s1"); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, a.bottom - 10); ctx.lineTo(x, a.bottom); ctx.stroke();
+    });
+    ctx.restore();
+  }
+};
+
 function verlaufZeichnen() {
   const tageweise = tageImZeitraum() > 21;
   document.getElementById("verlaufhint").textContent =
     `${tageweise ? "Tagesmittelwerte" : "Stundenwerte"} je Raum. Gestrichelt: 100 Bq/m³ (WHO-Empfehlung) und 300 Bq/m³ (Referenzwert Österreich). ` +
-    `Räume lassen sich mit den Knöpfen ein- und ausblenden.`;
+    `Räume lassen sich mit den Knöpfen ein- und ausblenden. Die kleinen Striche am unteren Rand zeigen, wann gelüftet wurde.`;
   const chips = document.getElementById("raumchips");
   chips.innerHTML = "";
   radon.forEach(r => {
@@ -719,7 +794,7 @@ function verlaufZeichnen() {
   opt.plugins.linien = { waagrecht: [{ wert: WHO, text: "WHO 100", farbe: farbe("--good") }, { wert: REFERENZ, text: "Referenzwert 300", farbe: farbe("--bad") }] };
   neu("verlauf", { type: "line",
     data: { datasets: radon.filter(r => sichtbar.includes(r.ort)).map(r => linie(r.ort, punkte(r), farbe(r.farbe))) },
-    options: opt, plugins: [linienPlugin, fadenkreuz] });
+    options: opt, plugins: [linienPlugin, fadenkreuz, lueftMarken] });
 }
 
 function vergleichZeichnen() {
@@ -797,12 +872,20 @@ function fingerabdruckZeichnen() {
   const schritte = 6;
   document.getElementById("fpachse").innerHTML = Array.from({ length: schritte }, (_, i) =>
     `<span>${fKurz.format(new Date(tage[Math.round(i * (tage.length - 1) / (schritte - 1))] + "T12:00:00"))}</span>`).join("");
+  // Lüften als weißer Punkt mit dunklem Rand
+  DATEN.lueften.filter(e => e.ort === (r.ort === "Küche (Sockel)" ? "Küche" : r.ort)).forEach(e => {
+    const x = tage.indexOf(fISO.format(e.zeit)); if (x < 0) return;
+    ctx.beginPath(); ctx.arc((x + 0.5) * bw, (stundeVon(e.zeit) + 0.5) * bh, Math.max(2.5, Math.min(bw, bh) / 2.5), 0, 7);
+    ctx.fillStyle = "#fff"; ctx.fill(); ctx.strokeStyle = "#0b0b0b"; ctx.lineWidth = 1; ctx.stroke();
+  });
   cv.onmousemove = e => {
     const b = cv.getBoundingClientRect(), x = Math.floor((e.clientX - b.left) / bw), y = Math.floor((e.clientY - b.top) / bh);
     const v = feld[x]?.[y];
     if (!tage[x]) return;
     document.getElementById("fpinfo").textContent =
-      `${new Date(tage[x] + "T12:00:00").toLocaleDateString("de-AT")}, ${y} bis ${y + 1} Uhr: ${v == null ? "kein Wert" : zahl(v) + " Bq/m³"}`;
+      `${new Date(tage[x] + "T12:00:00").toLocaleDateString("de-AT")}, ${y} bis ${y + 1} Uhr: ${v == null ? "kein Wert" : zahl(v) + " Bq/m³"}` +
+      DATEN.lueften.filter(l => l.ort === (r.ort === "Küche (Sockel)" ? "Küche" : r.ort) && fISO.format(l.zeit) === tage[x] && stundeVon(l.zeit) === y)
+        .map(l => ` · gelüftet um ${uhr(l.zeit)} (${lueftHinweis(l)})`).join("");
   };
   cv.onmouseleave = () => document.getElementById("fpinfo").textContent = "";
 }
@@ -911,6 +994,8 @@ function ereignisseZeichnen() {
     }
     if (best && best.n >= 3) liste.push([zeitVon(best.k), `Längste Phase über 300 Bq/m³ in <b>${r.ort}</b>: ${best.n} Stunden am Stück`]);
   });
+  const p = laengstePause();
+  if (p && p.bis - p.von > TAG) liste.push([p.von, `Längste Zeit ohne erkanntes Lüften beginnt: <b>${zahl((p.bis - p.von) / TAG, 1)} Tage</b> bis ${tagUhr(p.bis)}`]);
   liste.sort((a, b) => a[0] - b[0]);
   document.getElementById("ereignisse").innerHTML = liste.length
     ? liste.map(([t, text]) => `<li><span class="when">${tagUhr(t)}</span><span>${text}</span></li>`).join("")
@@ -926,21 +1011,75 @@ function qualitaetZeichnen() {
         <td>${n}</td><td>${s.luecken}</td><td>${s.laengsteLuecke ? dauer(s.laengsteLuecke) : "–"}</td><td>${zahl(s.min)}–${zahl(s.max)} Bq/m³</td></tr>`; }).join("");
 }
 
+// =====================================================================
+// Lüften
+// =====================================================================
+function lueftenZeichnen() {
+  document.getElementById("co2start").textContent = tag(CO2_START);
+  const le = lueftenIm(), tage = tageImZeitraum();
+  const proStunde = Array(24).fill(0); le.forEach(e => proStunde[stundeVon(e.zeit)]++);
+  const haeufig = proStunde.indexOf(Math.max(...proStunde));
+  const pause = laengstePause();
+  // Wirkung: Radon im selben Raum 1 Stunde vor und 2 Stunden nach dem Lüften (Stundenwerte)
+  const wirkung = [];
+  // nur über CO₂ erkannte Lüftungen: bei Erkennung über Radon fällt Radon ja schon per Definition
+  le.filter(e => e.hinweis.some(h => h.startsWith("CO"))).forEach(e => {
+    const k = Math.floor((e.zeit - DATEN.start) / STUNDE);
+    radon.filter(r => r.ort === e.ort || (e.ort === "Küche" && r.ort === "Küche (Sockel)")).forEach(r => {
+      const vor = r.werte[k - 1], nach = r.werte[k + 2];
+      if (vor != null && nach != null && vor >= WHO) wirkung.push((nach - vor) / vor);   // nur wenn Radon vorher über 100 lag
+    });
+  });
+  const w = mittel(wirkung);
+  document.getElementById("lueftkacheln").innerHTML = `
+    <div class="tile"><div class="label">Lüftungen erkannt</div><div class="value">${le.length}</div>
+      <div class="note">im Schnitt ${zahl(le.length / tage, 1)} pro Tag</div></div>
+    <div class="tile"><div class="label">Häufigste Uhrzeit</div><div class="value">${le.length ? haeufig : "–"} <small>Uhr</small></div>
+      <div class="note">${le.length ? `${proStunde[haeufig]}× zwischen ${haeufig} und ${haeufig + 1} Uhr` : ""}</div></div>
+    <div class="tile"><div class="label">Radon 2 h nach dem Lüften</div><div class="value">${w == null ? "–" : (w > 0 ? "+" : "−") + zahl(Math.abs(w) * 100)} <small>%</small></div>
+      <div class="note">wenn Radon vorher über 100 Bq/m³ lag, verglichen mit der Stunde davor (${wirkung.length} über CO₂ erkannte Fälle)</div></div>
+    <div class="tile"><div class="label">Längste Zeit ohne Lüften (ganzes Haus)</div><div class="value">${pause ? zahl((pause.bis - pause.von) / TAG, 1) : "–"} <small>Tage</small></div>
+      <div class="note">${pause ? `${tagUhr(pause.von)} bis ${tagUhr(pause.bis)}` : "erst ab Beginn der CO₂-Messung zuverlässig"}</div></div>`;
+
+  const orte = [...new Set(DATEN.lueften.map(e => e.ort))];
+  const farbeVon = ort => (radon.find(r => r.ort === ort) || {}).farbe || "--s1";
+  const opt = { responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { display: true, position: "top", align: "start", labels: { color: farbe("--ink-2"), boxWidth: 10, boxHeight: 10, font: { size: 12 } } },
+      tooltip: { backgroundColor: farbe("--surface"), titleColor: farbe("--ink"), bodyColor: farbe("--ink-2"), borderColor: farbe("--border"), borderWidth: 1,
+                 callbacks: { title: i => `${i[0].label} bis ${+i[0].label + 1} Uhr` } } },
+    scales: { x: { stacked: true, ticks: { color: farbe("--muted"), maxRotation: 0, autoSkip: false, callback: (v, i) => i % 6 === 0 ? `${i} Uhr` : "" }, grid: { display: false }, border: { color: farbe("--axis") } },
+              y: { stacked: true, ticks: { color: farbe("--muted"), precision: 0 }, grid: { color: farbe("--grid") }, border: { display: false } } } };
+  neu("lueftstunden", { type: "bar", options: opt,
+    data: { labels: [...Array(24).keys()], datasets: orte.map(ort => {
+      const z = Array(24).fill(0); le.filter(e => e.ort === ort).forEach(e => z[stundeVon(e.zeit)]++);
+      return { label: ort, data: z, backgroundColor: farbe(farbeVon(ort)), borderRadius: 2, borderColor: farbe("--surface"), borderWidth: 1 }; }) } });
+
+  document.getElementById("luefttabelle").innerHTML = `<tr><th>Raum</th><th>Anzahl</th><th>pro Woche</th><th>meist um</th><th>längste Pause</th><th>zuletzt</th></tr>` +
+    orte.map(ort => { const x = le.filter(e => e.ort === ort);
+      const s = Array(24).fill(0); x.forEach(e => s[stundeVon(e.zeit)]++);
+      return `<tr><td><span class="dot" style="background:var(${farbeVon(ort)})"></span>${ort}</td><td>${x.length}</td><td>${zahl(x.length / tage * 7, 1)}</td>
+        <td>${x.length ? s.indexOf(Math.max(...s)) + " Uhr" : "–"}</td><td>${reihe(ort, "CO") ? (p => p ? zahl((p.bis - p.von) / TAG, 1) + " Tage" : "–")(laengstePause(ort)) : "–"}</td>
+        <td>${x.length ? tagUhr(x[x.length - 1].zeit) : "–"}</td></tr>`; }).join("");
+  document.getElementById("lueftliste").innerHTML = le.slice().reverse().map(e =>
+    `<li><span class="when">${tagUhr(e.zeit)}</span><span><b>${e.ort}</b>: ${lueftHinweis(e)}</span></li>`).join("") || `<li><span class="when">–</span><span>keine Lüftung erkannt</span></li>`;
+}
+
 function tabelleZeichnen() {
   const spalten = [...radon.map(r => [r.ort, r]), ["Außentemp. °C", wetter("Temperatur 2 m")]];
   const reihen = spalten.map(([, r]) => new Map(tagesMittel(r).map(p => [fISO.format(p.x), p.y])));
   const tage = [...new Set(DATUM.slice(A, B + 1))];
   document.getElementById("tabelle").innerHTML =
-    `<tr><th>Tag</th>${spalten.map(s => `<th>${s[0]}</th>`).join("")}</tr>` +
+    `<tr><th>Tag</th>${spalten.map(s => `<th>${s[0]}</th>`).join("")}<th style="text-align:left">Gelüftet</th></tr>` +
     tage.map(d => `<tr><td>${new Date(d + "T12:00:00").toLocaleDateString("de-AT")}</td>${reihen.map(m => {
-      const v = m.get(d); return `<td>${v == null ? "–" : zahl(v, 1)}</td>`; }).join("")}</tr>`).join("");
+      const v = m.get(d); return `<td>${v == null ? "–" : zahl(v, 1)}</td>`; }).join("")}<td style="text-align:left">${
+      DATEN.lueften.filter(e => fISO.format(e.zeit) === d).map(e => `${uhr(e.zeit)} ${e.ort}`).join(", ") || "–"}</td></tr>`).join("");
 }
 
 // =====================================================================
 function allesZeichnen() {
   kachelnZeichnen(); skalaZeichnen(); planZeichnen(); vergleichZeichnen(); verlaufZeichnen();
   monateZeichnen(); stundenZeichnen(); fingerabdruckZeichnen(); klimaZeichnen(); wetterZeichnen();
-  korrelationZeichnen(); erkenntnisseZeichnen(); ereignisseZeichnen(); qualitaetZeichnen(); tabelleZeichnen();
+  lueftenZeichnen(); korrelationZeichnen(); erkenntnisseZeichnen(); ereignisseZeichnen(); qualitaetZeichnen(); tabelleZeichnen();
 }
 window.addEventListener("resize", () => fingerabdruckZeichnen());
 auswahl.value = "alles";

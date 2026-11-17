@@ -26,6 +26,7 @@ CSV oder PDF → Text → Tabelle → bereinigen → Stundenwerte → daten/rado
 - Zeitraum frei wählbar (gesamt, letzte 7/30 Tage, einzelne Monate, eigenes Datum)
 - Kennzahlen und automatisch formulierte „Wichtigste Erkenntnisse“
 - Raumplan: schematischer Grundriss, jeder Raum in der Farbe seines Radonwerts (grün bis rot), mit Zeitregler zum Abspielen
+- Lüften: automatisch erkannt (schneller Abfall von CO₂ oder Radon) und überall eingetragen: Raumplan, Zeitverlauf, Fingerabdruck, Erkenntnisse, Ereignisse, Tagestabelle
 - Räume im Vergleich, Zeitverlauf mit den Grenzen 100 Bq/m³ (WHO) und 300 Bq/m³ (Referenzwert Österreich)
 - Monatsübersicht, Tagesverlauf und „Fingerabdruck“ (Tag × Uhrzeit) je Raum
 - Raumklima (CO₂, Temperatur, Feuchte, Luftdruck) und Wetter

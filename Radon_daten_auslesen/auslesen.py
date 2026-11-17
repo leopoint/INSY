@@ -2,7 +2,7 @@
 
 Die Daten sind eine Tabelle: eine Zeile pro Messung, Werte durch Kommas getrennt.
 Bei der PDF steht diese Tabelle als Text auf der Seite und muss erst herausgeholt werden.
-Ablauf:  Datei -> Text -> Tabelle -> bereinigen -> Stundenwerte -> daten/radon_stuendlich.csv
+Ablauf:  Datei -> Text -> Tabelle -> bereinigen -> Lueften erkennen -> Stundenwerte -> daten/radon_stuendlich.csv
                                                                  -> dashboard/daten.js
 Start:   python auslesen.py                (nimmt daten/radon_alle_raeume.csv)
          python auslesen.py andere.pdf     (oder eine andere CSV/PDF mit demselben Aufbau)
@@ -110,6 +110,48 @@ def bereinigen(kopf, zeilen):
     return reihen, entfernt, leer, neustarts
 
 
+def lueften_erkennen(reihen, neustarts):
+    """Erkennt, wann gelueftet wurde. Beim Lueften kommt frische Aussenluft herein, deshalb faellt
+    - CO₂ schnell: mindestens 150 ppm innerhalb von 30 Minuten (nur Kueche und Schlafzimmer haben CO₂), oder
+    - Radon schnell: von mindestens 100 Bq/m³ um mindestens 60 Bq/m³ und auf hoechstens 65 % innerhalb von 1 Stunde.
+    Ereignisse im selben Raum, die weniger als 1 Stunde auseinanderliegen, gelten als ein Lueften."""
+    REGELN = {"CO₂": (30, lambda a, m: a - m >= 150, 2),
+              "Radon": (60, lambda a, m: a >= 100 and a - m >= 60 and m <= 0.65 * a, 3)}
+    ereignisse = []
+    for r in reihen.values():
+        if r["groesse"] not in REGELN:
+            continue
+        minuten, faellt, abstand_h = REGELN[r["groesse"]]
+        raum = r["ort"].replace(" - Sockel", "")          # Sockel-Sensor steht in der Kueche
+        p, letztes = r["punkte"], None
+        ende = 0
+        for j, (ms, wert) in enumerate(p):
+            if letztes is not None and ms - letztes < abstand_h * STUNDE:
+                continue
+            ende = max(ende, j)
+            while ende + 1 < len(p) and p[ende + 1][0] - ms <= minuten * 60000:
+                ende += 1
+            tief = min(x[1] for x in p[j:ende + 1])
+            if not faellt(wert, tief):
+                continue
+            # Abfall durch einen Sensor-Neustart ist kein Lueften
+            if any(n["ort"] == r["ort"] and ms <= n["zeit"] <= p[ende][0] for n in neustarts):
+                continue
+            ereignisse.append({"ort": raum, "zeit": ms, "groesse": r["groesse"], "von": wert, "bis": tief})
+            letztes = ms
+
+    # gleiches Lueften, das von mehreren Sensoren im selben Raum erkannt wurde, zusammenfassen
+    ereignisse.sort(key=lambda e: (e["ort"], e["zeit"]))
+    zusammen = []
+    for e in ereignisse:
+        vorher = zusammen[-1] if zusammen else None
+        if vorher and vorher["ort"] == e["ort"] and e["zeit"] - vorher["zeit"] < STUNDE:
+            vorher["hinweis"].append(f"{e['groesse']} {e['von']:.0f}→{e['bis']:.0f}")
+        else:
+            zusammen.append({"ort": e["ort"], "zeit": e["zeit"], "hinweis": [f"{e['groesse']} {e['von']:.0f}→{e['bis']:.0f}"]})
+    return sorted(zusammen, key=lambda e: e["zeit"])
+
+
 def statistik(reihe):
     """Kennzahlen aus den Rohwerten: Anzahl, Mittel, Min/Max mit Zeitpunkt, erster/letzter Messzeitpunkt."""
     p = reihe["punkte"]
@@ -169,7 +211,7 @@ def csv_schreiben(reihen, start, anzahl, pfad):
                 w.writerow([zeit] + ["" if v is None else v for v in werte])
 
 
-def js_schreiben(reihen, start, neustarts, entfernt, quelle, anzahl_zeilen, pfad):
+def js_schreiben(reihen, start, neustarts, lueften, entfernt, quelle, anzahl_zeilen, pfad):
     """Speichert die Daten als JavaScript-Datei. So kann das Dashboard sie auch ohne Server laden
     (einfach index.html doppelklicken) und genauso auf GitHub Pages."""
     daten = {
@@ -180,6 +222,7 @@ def js_schreiben(reihen, start, neustarts, entfernt, quelle, anzahl_zeilen, pfad
         "start": start,
         "schritt": STUNDE,
         "neustarts": neustarts,
+        "lueften": lueften,
         "reihen": [{"ort": r["ort"], "groesse": r["groesse"], "einheit": r["einheit"],
                     "stat": r["stat"], "werte": r["werte"]} for r in reihen.values()],
     }
@@ -215,10 +258,14 @@ def main():
         r["stat"] = statistik(r)
         r["stat"]["entfernt"] = sum(1 for e in entfernt if e[1] == r["ort"] and r["groesse"] == "Radon")
     zusammenfassung(reihen, entfernt, leer, kaputt, neustarts)
+    lueften = lueften_erkennen(reihen, neustarts)
+    print(f"Erkannte Lueftungen: {len(lueften)}")
+    for ort in sorted({e['ort'] for e in lueften}):
+        print(f"   {ort:<14} {sum(1 for e in lueften if e['ort'] == ort)}")
 
     start, anzahl = stundenwerte(reihen)
     csv_schreiben(reihen, start, anzahl, CSV_AUSGABE)
-    js_schreiben(reihen, start, neustarts, entfernt, datei, len(zeilen), JS_AUSGABE)
+    js_schreiben(reihen, start, neustarts, lueften, entfernt, datei, len(zeilen), JS_AUSGABE)
     print(f"\n{anzahl} Stunden. Gespeichert: {os.path.relpath(CSV_AUSGABE, ORDNER)} "
           f"und {os.path.relpath(JS_AUSGABE, ORDNER)}")
 
